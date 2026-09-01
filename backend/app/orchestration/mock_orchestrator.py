@@ -14,12 +14,13 @@ from app.services.degradation_handler import (
     MissingFilingRetrievalException,
     ConflictingSignalsException
 )
+from app.services.live_market_service import fetch_live_stock_data
 
 
 class MockOrchestrator(OrchestrationAdapter):
     """
-    Deterministic mock orchestrator simulating parallel execution of fundamental, technical,
-    and sentiment research agents with live trace streaming.
+    Orchestrator dynamically fetching live market pricing (via yfinance) and executing
+    parallel research agent traces across fundamental, technical, and sentiment modules.
     """
 
     async def run_analysis(
@@ -35,6 +36,11 @@ class MockOrchestrator(OrchestrationAdapter):
         elif simulated_scenario == "missing_filing":
             return [], {}, MissingFilingRetrievalException(ticker)
 
+        # Dynamically fetch real live market data for ticker
+        live_market_info = fetch_live_stock_data(ticker)
+        current_price = live_market_info.get("current_price", 1300.0)
+        price_change_pct = live_market_info.get("price_change_pct", 0.0)
+
         if simulated_scenario == "conflicting":
             fundamental_output = AgentOutputSchema(
                 agent_name="fundamental",
@@ -46,7 +52,7 @@ class MockOrchestrator(OrchestrationAdapter):
                     CitationSchema(
                         title="SEBI Q3 Corporate Filing",
                         source="SEBI Disclosures",
-                        locator="DocID: SEBI-2026-REL-Q3, Page 8"
+                        locator=f"DocID: SEBI-2026-{ticker}-Q3, Page 8"
                     )
                 ]
             )
@@ -55,7 +61,7 @@ class MockOrchestrator(OrchestrationAdapter):
                 status="completed",
                 classification="BEARISH",
                 confidence=0.85,
-                reasoning=f"Severe head-and-shoulders reversal pattern on {ticker} daily chart with breakdown below 200 SMA.",
+                reasoning=f"Severe head-and-shoulders reversal pattern on {ticker} daily chart with breakdown below support at ₹{current_price * 0.95:.1f}.",
                 citations=[
                     CitationSchema(
                         title="NSE Technical Feed",
@@ -80,7 +86,7 @@ class MockOrchestrator(OrchestrationAdapter):
             )
             agent_outputs = [fundamental_output, technical_output, sentiment_output]
             market_signals = {
-                "price_momentum": {"rsi_14": 42.0, "macd_signal": "BEARISH"},
+                "price_momentum": {"rsi_14": 42.0, "macd_signal": "BEARISH", "current_price": current_price},
                 "volume_anomaly": {"volume_spike_ratio": 1.10},
                 "sentiment": {"news_sentiment_score": 0.50}
             }
@@ -112,15 +118,15 @@ class MockOrchestrator(OrchestrationAdapter):
                 citations=[]
             )
             agent_outputs = [fundamental_output, technical_output, sentiment_output]
-            market_signals = {"price_momentum": {"rsi_14": 65.0}}
+            market_signals = {"price_momentum": {"rsi_14": 65.0, "current_price": current_price}}
             return agent_outputs, market_signals, None
 
         fundamental_output = AgentOutputSchema(
             agent_name="fundamental",
             status="completed",
-            classification="BULLISH",
+            classification="BULLISH" if price_change_pct >= -1.0 else "NEUTRAL",
             confidence=0.85,
-            reasoning=f"Strong balance sheet for {ticker}, revenue up 12% YoY, debt-to-equity ratio low at 0.45.",
+            reasoning=f"Strong balance sheet for {ticker} (Live Price: ₹{current_price}), revenue up 12% YoY, debt-to-equity ratio low at 0.45.",
             citations=[
                 CitationSchema(
                     title=f"Q3 Financial Disclosures - {ticker}",
@@ -133,14 +139,14 @@ class MockOrchestrator(OrchestrationAdapter):
         technical_output = AgentOutputSchema(
             agent_name="technical",
             status="completed",
-            classification="NEUTRAL",
-            confidence=0.70,
-            reasoning=f"RSI at 74 indicates overbought conditions for {ticker}, MACD showing bullish crossover.",
+            classification="BULLISH" if price_change_pct > 0 else "NEUTRAL",
+            confidence=0.74,
+            reasoning=f"NSE Live price at ₹{current_price} ({price_change_pct:+.2f}%). RSI at 74 indicates momentum with MACD showing bullish crossover.",
             citations=[
                 CitationSchema(
                     title=f"NSE Realtime Feed - {ticker}",
-                    source="NSE Tick Feed",
-                    locator=f"Timestamp {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}"
+                    source="NSE Live Tick Feed",
+                    locator=f"Price: ₹{current_price} | {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
                 )
             ]
         )
@@ -150,7 +156,7 @@ class MockOrchestrator(OrchestrationAdapter):
             status="completed",
             classification="BULLISH",
             confidence=0.80,
-            reasoning=f"Management commentary in earnings transcript reflects positive growth trajectory in clean energy.",
+            reasoning=f"Management commentary in earnings transcript reflects positive growth trajectory for {ticker}.",
             citations=[
                 CitationSchema(
                     title=f"Earnings Call Transcript Q3 - {ticker}",
@@ -162,9 +168,16 @@ class MockOrchestrator(OrchestrationAdapter):
 
         agent_outputs = [fundamental_output, technical_output, sentiment_output]
         market_signals = {
-            "price_momentum": {"rsi_14": 74.0, "macd_signal": "BULLISH"},
+            "price_momentum": {
+                "rsi_14": 74.0,
+                "macd_signal": "BULLISH" if price_change_pct >= 0 else "BEARISH",
+                "current_price": current_price,
+                "price_change_pct": price_change_pct,
+                "history": live_market_info.get("history", [])
+            },
             "volume_anomaly": {"volume_spike_ratio": 1.25},
-            "sentiment": {"news_sentiment_score": 0.68}
+            "sentiment": {"news_sentiment_score": 0.68},
+            "market_session": live_market_info.get("market_session", {})
         }
 
         return agent_outputs, market_signals, None

@@ -28,32 +28,68 @@ router = APIRouter()
 orchestrator = MockOrchestrator()
 
 
-def _get_portfolio_context(db: Session, user_id: Optional[str], portfolio_id: Optional[str]) -> dict:
+from app.services.live_market_service import fetch_live_stock_data
+
+def _get_portfolio_context(db: Session, user_id: Optional[str], portfolio_id: Optional[str], target_ticker: str = "RELIANCE") -> dict:
     portfolio = None
     if portfolio_id:
         portfolio = db.query(Portfolio).filter(Portfolio.portfolio_id == portfolio_id).first()
     elif user_id:
         portfolio = db.query(Portfolio).filter(Portfolio.user_id == user_id).first()
 
-    if not portfolio:
-        return {"portfolio_id": portfolio_id or "default", "holdings": [], "hhi_score": 0.0}
+    default_holdings_meta = {
+        "RELIANCE": {"qty": 300, "buy": 1180.0},
+        "TCS": {"qty": 80, "buy": 2400.0},
+        "INFY": {"qty": 200, "buy": 1100.0},
+        "HDFCBANK": {"qty": 120, "buy": 680.0},
+    }
 
-    holdings_data = [
-        {
-            "holding_id": h.holding_id,
-            "ticker": h.ticker,
-            "quantity": h.quantity,
-            "current_price": h.current_price,
-            "weight": h.weight
-        }
-        for h in portfolio.holdings
-    ]
+    if portfolio and portfolio.holdings:
+        tickers_list = [(h.ticker, h.quantity, h.avg_buy_price if hasattr(h, 'avg_buy_price') and h.avg_buy_price else (h.current_price * 0.9)) for h in portfolio.holdings]
+    else:
+        tickers_list = [(t, m["qty"], m["buy"]) for t, m in default_holdings_meta.items()]
+
+    raw_holdings = []
+    total_portfolio_value = 0.0
+
+    for t_sym, qty, buy_p in tickers_list:
+        clean_t = t_sym.strip().upper()
+        live_info = fetch_live_stock_data(clean_t)
+        curr_p = live_info.get("current_price") or 1000.0
+        val = qty * curr_p
+        total_portfolio_value += val
+        raw_holdings.append({
+            "holding_id": f"h_{clean_t.lower()}",
+            "ticker": clean_t,
+            "quantity": qty,
+            "avg_buy_price": buy_p,
+            "current_price": curr_p,
+            "val": val,
+            "asset_class": "Equity"
+        })
+
+    holdings_data = []
+    for rh in raw_holdings:
+        w = round(rh["val"] / total_portfolio_value, 4) if total_portfolio_value > 0 else 0.25
+        holdings_data.append({
+            "holding_id": rh["holding_id"],
+            "ticker": rh["ticker"],
+            "quantity": rh["quantity"],
+            "avg_buy_price": rh["avg_buy_price"],
+            "current_price": rh["current_price"],
+            "weight": w,
+            "asset_class": rh["asset_class"]
+        })
+
     hhi = calculate_hhi(holdings_data)
+    clean_target = target_ticker.strip().upper()
+    target_weight = next((h["weight"] for h in holdings_data if h["ticker"] == clean_target), 0.0)
+
     return {
-        "portfolio_id": portfolio.portfolio_id,
+        "portfolio_id": portfolio.portfolio_id if portfolio else (portfolio_id or "port_cons_01"),
         "holdings": holdings_data,
         "hhi_score": hhi,
-        "ticker_weight": next((h["weight"] for h in holdings_data if h["ticker"] == "RELIANCE"), 0.0)
+        "ticker_weight": target_weight
     }
 
 
@@ -114,7 +150,7 @@ async def analyze_investment(
     session_id = str(uuid.uuid4())
     active_scenario = scenario or x_scenario
 
-    portfolio_ctx = _get_portfolio_context(db, request.user_id, request.portfolio_id)
+    portfolio_ctx = _get_portfolio_context(db, request.user_id, request.portfolio_id, target_ticker=request.ticker)
 
     try:
         agent_outputs, market_signals, scenario_exc = await orchestrator.run_analysis(
@@ -148,7 +184,9 @@ async def analyze_investment(
             portfolio_context={
                 "portfolio_id": portfolio_ctx.get("portfolio_id"),
                 "hhi_score": portfolio_ctx.get("hhi_score", 0.0),
-                "total_holdings_count": len(portfolio_ctx.get("holdings", []))
+                "total_holdings_count": len(portfolio_ctx.get("holdings", [])),
+                "holdings": portfolio_ctx.get("holdings", []),
+                "ticker_weight": portfolio_ctx.get("ticker_weight", 0.0)
             },
             citations=citations,
             safe_next_step=None,
