@@ -24,10 +24,9 @@ export function App() {
   const [isTourOpen, setIsTourOpen] = useState(false);
 
   const {
-    activeTicker,
     activeProfile,
-    activeScenario,
-    isMockMode,
+    setActiveTicker,
+    setActiveProfile,
     analysisResult,
     setAnalysisResult,
     setLoading,
@@ -44,11 +43,23 @@ export function App() {
     if (!done) setIsTourOpen(true);
   }, []);
 
-  const handleRunAnalysis = async () => {
+  const handleRunAnalysis = async (tickerOverride?: string, profileOverride?: any) => {
+    const targetTicker = (tickerOverride || useAppStore.getState().activeTicker || 'RELIANCE').trim().toUpperCase();
+    const targetProfile = profileOverride || useAppStore.getState().activeProfile || 'Conservative';
+    const targetScenario = useAppStore.getState().activeScenario;
+    const isMock = useAppStore.getState().isMockMode;
+
+    setActiveTicker(targetTicker);
+    if (profileOverride) setActiveProfile(profileOverride);
+
     setLoading(true);
     clearWsEvents();
 
-    const payload = { ticker: activeTicker, behavioral_profile: activeProfile, scenario: activeScenario };
+    const payload = {
+      ticker: targetTicker,
+      behavioral_profile: targetProfile,
+      scenario: targetScenario
+    };
 
     if (wsClientRef.current) wsClientRef.current.disconnect();
     wsClientRef.current = new AgentTraceWebSocketClient(
@@ -58,7 +69,7 @@ export function App() {
     wsClientRef.current.connect(payload);
 
     try {
-      const result = await fetchAnalysis(payload, undefined, isMockMode);
+      const result = await fetchAnalysis(payload, undefined, isMock);
       setAnalysisResult(result);
       addSessionRecord({
         session_id: result.session_id,
@@ -102,7 +113,7 @@ export function App() {
 
         <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
           <Routes>
-            <Route path="/"                   element={<OverviewPage />} />
+            <Route path="/"                   element={<OverviewPage onRunAnalysis={handleRunAnalysis} />} />
             <Route path="/analyze"            element={<AnalyzePage onRunAnalysis={handleRunAnalysis} />} />
             <Route path="/analysis/:sessionId" element={<AnalysisDetailPage />} />
             <Route path="/portfolio"           element={<PortfolioPage />} />

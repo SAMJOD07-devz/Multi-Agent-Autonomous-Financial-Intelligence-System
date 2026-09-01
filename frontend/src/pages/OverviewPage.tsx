@@ -53,7 +53,11 @@ const StatusChip = ({
 
 /* ── component ────────────────────────────────────────── */
 
-export const OverviewPage: React.FC = () => {
+interface OverviewPageProps {
+  onRunAnalysis?: (tickerOverride?: string) => void;
+}
+
+export const OverviewPage: React.FC<OverviewPageProps> = ({ onRunAnalysis }) => {
   const navigate = useNavigate();
   const {
     setActiveTicker,
@@ -126,6 +130,7 @@ export const OverviewPage: React.FC = () => {
               key={s.session_id}
               onClick={() => {
                 setActiveTicker(s.ticker);
+                onRunAnalysis?.(s.ticker);
                 navigate('/analyze');
               }}
               style={{
@@ -235,6 +240,7 @@ export const OverviewPage: React.FC = () => {
                     key={t}
                     onClick={() => {
                       setActiveTicker(t);
+                      onRunAnalysis?.(t);
                       navigate('/analyze');
                     }}
                     style={{
@@ -348,6 +354,7 @@ export const OverviewPage: React.FC = () => {
                       key={s.session_id}
                       onClick={() => {
                         setActiveTicker(s.ticker);
+                        onRunAnalysis?.(s.ticker);
                         navigate('/analyze');
                       }}
                       style={{

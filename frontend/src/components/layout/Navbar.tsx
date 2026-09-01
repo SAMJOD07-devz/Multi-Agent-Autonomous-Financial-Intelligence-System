@@ -7,7 +7,7 @@ import { useAppStore } from '../../state/useAppStore';
 import { Search, Loader2 } from 'lucide-react';
 
 interface NavbarProps {
-  onRunAnalysis: () => void;
+  onRunAnalysis: (tickerOverride?: string) => void;
   onOpenTour: () => void;
 }
 
@@ -16,12 +16,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis }) => {
   const { activeTicker, setActiveTicker, isLoading, wsConnectionState } = useAppStore();
   const [inputTicker, setInputTicker] = useState(activeTicker);
 
+  React.useEffect(() => {
+    if (activeTicker) {
+      setInputTicker(activeTicker);
+    }
+  }, [activeTicker]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const t = inputTicker.trim().toUpperCase();
     if (!t) return;
     setActiveTicker(t);
-    onRunAnalysis();
+    onRunAnalysis(t);
     navigate('/analyze');
   };
 
