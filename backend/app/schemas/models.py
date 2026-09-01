@@ -74,14 +74,14 @@ class AgentOutput(BaseModel):
 
 class RiskTolerance(str, Enum):
     CONSERVATIVE = "CONSERVATIVE"
-    BALANCED = "BALANCED"
+    MODERATE = "MODERATE"
     AGGRESSIVE = "AGGRESSIVE"
 
 
 class InvestmentHorizon(str, Enum):
-    SHORT = "SHORT"
-    MEDIUM = "MEDIUM"
-    LONG = "LONG"
+    SHORT_TERM = "SHORT_TERM"
+    MEDIUM_TERM = "MEDIUM_TERM"
+    LONG_TERM = "LONG_TERM"
 
 
 class VolatilityTolerance(str, Enum):
