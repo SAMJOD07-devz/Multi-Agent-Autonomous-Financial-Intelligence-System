@@ -1,0 +1,13 @@
+pymupdf>=1.23.0
+chromadb>=0.4.22
+sentence-transformers>=2.3.0
+langchain-text-splitters>=0.0.1
+pydantic>=2.0.0
+# Market Data & Analysis
+yfinance>=0.2.33
+pandas>=2.0.0
+pandas-ta>=0.3.14
+
+# Vector DB & Embeddings
+chromadb>=0.4.22
+sentence-transformers>=2.3.1

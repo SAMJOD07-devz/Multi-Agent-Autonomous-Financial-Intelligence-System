@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
@@ -74,14 +74,14 @@ class AgentOutput(BaseModel):
 
 class RiskTolerance(str, Enum):
     CONSERVATIVE = "CONSERVATIVE"
-    BALANCED = "BALANCED"
+    MODERATE = "MODERATE"
     AGGRESSIVE = "AGGRESSIVE"
 
 
 class InvestmentHorizon(str, Enum):
-    SHORT = "SHORT"
-    MEDIUM = "MEDIUM"
-    LONG = "LONG"
+    SHORT_TERM = "SHORT_TERM"
+    MEDIUM_TERM = "MEDIUM_TERM"
+    LONG_TERM = "LONG_TERM"
 
 
 class VolatilityTolerance(str, Enum):
@@ -101,6 +101,11 @@ class PipelineStatus(str, Enum):
     DEGRADED = "DEGRADED"
     FAILED = "FAILED"
     RUNNING = "RUNNING"
+    INGESTED = "INGESTED"
+    ANALYZING = "ANALYZING"
+    SYNTHESIZING = "SYNTHESIZING"
+    VALIDATING = "VALIDATING"
+    COMPLETED = "COMPLETED"
 
 
 class PipelineState(BaseModel):
@@ -110,6 +115,14 @@ class PipelineState(BaseModel):
     pipeline_status: PipelineStatus = PipelineStatus.RUNNING
     errors: list[str] = Field(default_factory=list)
     timestamps: dict[str, datetime] = Field(default_factory=dict)
+    run_id: Optional[UUID] = None
+    symbol: Optional[str] = None
+    user_profile: Optional[UserProfile] = None
+    conflict_result: Optional[Any] = None
+    weights: dict[str, float] = Field(default_factory=dict)
+    synthesis_result: Optional[Any] = None
+    evidence: list[Evidence] = Field(default_factory=list)
+    decision_trace: list[Any] = Field(default_factory=list)
 
 
 class IntelligenceResponse(BaseModel):
