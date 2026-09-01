@@ -1,57 +1,91 @@
 // src/components/layout/Sidebar.tsx
+// Quiet left nav rail. Active state: accent left border, no colored backgrounds.
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Activity, PieChart, FileText, History, Settings, ShieldCheck } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Activity,
+  PieChart,
+  FileText,
+  History,
+  Settings,
+} from 'lucide-react';
+
+const NAV_ITEMS = [
+  { path: '/',          label: 'Overview',  icon: LayoutDashboard, end: true },
+  { path: '/analyze',   label: 'Analyze',   icon: Activity,         end: false },
+  { path: '/portfolio', label: 'Portfolio', icon: PieChart,         end: false },
+  { path: '/evidence',  label: 'Evidence',  icon: FileText,         end: false },
+  { path: '/sessions',  label: 'Sessions',  icon: History,          end: false },
+  { path: '/settings',  label: 'Settings',  icon: Settings,         end: false },
+];
 
 export const Sidebar: React.FC = () => {
-  const navItems = [
-    { path: '/', label: 'Overview', icon: LayoutDashboard },
-    { path: '/analyze', label: 'Analyze Workflow', icon: Activity },
-    { path: '/portfolio', label: 'Portfolio State', icon: PieChart },
-    { path: '/evidence', label: 'Evidence Library', icon: FileText },
-    { path: '/sessions', label: 'Session History', icon: History },
-    { path: '/settings', label: 'Settings & QA', icon: Settings },
-  ];
-
   return (
-    <aside className="w-16 md:w-56 bg-white border-r border-slate-200 flex flex-col justify-between py-4 shrink-0 shadow-xs">
-      <div className="space-y-1 px-2">
-        <div className="hidden md:block text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 mb-2 font-mono">
-          Intelligence Navigation
-        </div>
-        {navItems.map((item) => {
-          const Icon = item.icon;
+    <nav
+      style={{
+        width: 56,
+        flexShrink: 0,
+        background: 'var(--color-surface)',
+        borderRight: '1px solid var(--color-border)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        paddingTop: 16,
+        paddingBottom: 16,
+        gap: 4,
+      }}
+      className="sidebar-nav"
+    >
+      {NAV_ITEMS.map(({ path, label, icon: Icon, end }) => (
+        <NavLink
+          key={path}
+          to={path}
+          end={end}
+          title={label}
+          style={({ isActive }) => ({
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            borderRadius: 'var(--radius-md)',
+            color: isActive ? 'var(--color-accent)' : 'var(--color-ink-faint)',
+            background: isActive ? 'var(--color-accent-light)' : 'transparent',
+            transition: 'color 150ms, background 150ms',
+            textDecoration: 'none',
+          })}
+        >
+          {({ isActive }) => (
+            <Icon size={18} strokeWidth={isActive ? 2.5 : 1.8} />
+          )}
+        </NavLink>
+      ))}
 
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) =>
-                `w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`
-              }
-            >
-              <Icon className="w-4 h-4 shrink-0 text-current" />
-              <span className="hidden md:inline truncate">{item.label}</span>
-            </NavLink>
-          );
-        })}
-      </div>
-
-      {/* Safety Standard Footer Badge */}
-      <div className="hidden md:block px-4 py-3 border-t border-slate-100 text-[10px] text-slate-500">
-        <div className="flex items-center space-x-1.5 text-emerald-700 font-semibold mb-1">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>SEBI Filings Verified</span>
-        </div>
-        <p className="leading-tight text-slate-400">
-          Zero uncited recommendations policy.
-        </p>
-      </div>
-    </aside>
+      {/* Expanded labels on wider viewports */}
+      <style>{`
+        @media (min-width: 1200px) {
+          .sidebar-nav {
+            width: 192px !important;
+            align-items: stretch !important;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+          }
+          .sidebar-nav a {
+            width: auto !important;
+            height: auto !important;
+            padding: 9px 12px !important;
+            justify-content: flex-start !important;
+            gap: 10px !important;
+          }
+          .sidebar-nav a::after {
+            content: attr(title);
+            font-family: var(--font-ui);
+            font-size: 13px;
+            font-weight: 500;
+          }
+        }
+      `}</style>
+    </nav>
   );
 };

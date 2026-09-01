@@ -1,7 +1,9 @@
 // src/components/portfolio/PortfolioRiskMeter.tsx
+// Single source of truth for HHI. One gauge, one threshold marker, traffic-light color.
+// This is the ONLY place HHI appears on screen.
 import React from 'react';
-import { AlertTriangle, PieChart } from 'lucide-react';
 import type { PortfolioHolding } from '../../types';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
 
 interface PortfolioRiskMeterProps {
   hhiScore: number;
@@ -12,77 +14,291 @@ interface PortfolioRiskMeterProps {
 export const PortfolioRiskMeter: React.FC<PortfolioRiskMeterProps> = ({
   hhiScore,
   holdings,
-  activeTicker
+  activeTicker,
 }) => {
-  const isHighRisk = hhiScore > 0.25;
-  const isModerateRisk = hhiScore > 0.18 && hhiScore <= 0.25;
+  const THRESHOLD = 0.25;
+  const isBreach = hhiScore > THRESHOLD;
+  const isWatch = hhiScore >= 0.22 && hhiScore <= THRESHOLD;
 
-  const activeHolding = holdings.find((h) => h.ticker.toUpperCase() === activeTicker.toUpperCase());
+  const riskColor = isBreach
+    ? 'var(--color-risk-breach)'
+    : isWatch
+    ? 'var(--color-risk-watch)'
+    : 'var(--color-risk-safe)';
+
+  const riskBg = isBreach
+    ? 'var(--color-risk-breach-bg)'
+    : isWatch
+    ? 'var(--color-risk-watch-bg)'
+    : 'var(--color-risk-safe-bg)';
+
+  const riskBorder = isBreach
+    ? 'var(--color-risk-breach-border)'
+    : isWatch
+    ? 'var(--color-risk-watch-border)'
+    : 'var(--color-risk-safe-border)';
+
+  const riskLabel = isBreach ? 'Breach' : isWatch ? 'Watch' : 'Safe';
+
+  // Scale: 0.0 → 0.5 range displayed
+  const gaugeMax = 0.5;
+  const fillPct = Math.min((hhiScore / gaugeMax) * 100, 100);
+  const thresholdPct = (THRESHOLD / gaugeMax) * 100;
 
   return (
-    <div className="panel-card p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5 font-mono">
-          <PieChart className="w-4 h-4 text-blue-600" />
-          <span>Portfolio Risk Concentration</span>
-        </span>
-        <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-            isHighRisk
-              ? 'bg-red-50 text-red-700 border-red-200 font-semibold'
-              : isModerateRisk
-              ? 'bg-amber-50 text-amber-700 border-amber-200'
-              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-          }`}
+    <div>
+      {/* Section header */}
+      <p
+        className="section-label"
+        style={{ marginBottom: 12, marginTop: 0 }}
+      >
+        Concentration Risk
+      </p>
+
+      {/* HHI gauge */}
+      <div style={{ marginBottom: 14 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 6,
+          }}
         >
-          {isHighRisk ? 'HIGH CONCENTRATION' : isModerateRisk ? 'MODERATE' : 'WELL DIVERSIFIED'}
-        </span>
-      </div>
-
-      <div className="mt-3">
-        <div className="flex items-baseline justify-between text-xs">
-          <span className="text-slate-600 font-medium">Herfindahl-Hirschman Score (HHI):</span>
-          <span className="tabular-nums font-bold text-sm text-slate-900 font-mono">
-            {hhiScore.toFixed(3)}
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 12,
+              color: 'var(--color-ink-muted)',
+            }}
+          >
+            HHI Score
           </span>
-        </div>
-
-        <div className="relative w-full h-2 rounded-full bg-slate-200 mt-2 overflow-hidden">
-          <div
-            className={`h-full transition-all duration-500 ${
-              isHighRisk ? 'bg-red-600' : isModerateRisk ? 'bg-amber-500' : 'bg-emerald-500'
-            }`}
-            style={{ width: `${Math.min(hhiScore * 200, 100)}%` }}
-          />
-          <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-red-600 z-10" />
-        </div>
-        <div className="flex justify-between text-[9px] text-slate-400 mt-1 font-mono">
-          <span>0.0 (Diversified)</span>
-          <span className="text-red-600 font-semibold">0.25 Threshold</span>
-          <span>0.50+ (Concentrated)</span>
-        </div>
-      </div>
-
-      {activeHolding && (
-        <div className="mt-3 p-2.5 rounded-lg bg-blue-50/70 border border-blue-200 flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-            <span className="font-bold text-slate-900">{activeHolding.ticker} Exposure</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: 18,
+                fontWeight: 700,
+                color: riskColor,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {hhiScore.toFixed(3)}
+            </span>
+            <span
+              style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 11,
+                fontWeight: 600,
+                color: riskColor,
+                background: riskBg,
+                border: `1px solid ${riskBorder}`,
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              {riskLabel}
+            </span>
           </div>
-          <span className="tabular-nums font-bold text-blue-700 font-mono">
-            {Math.round(activeHolding.weight * 100)}% Portfolio
-          </span>
         </div>
-      )}
 
-      {isHighRisk && (
-        <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start space-x-2.5 text-xs">
-          <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-          <p className="text-red-900 text-[11px] leading-relaxed">
-            <strong className="text-red-950">Concentration Alert (HHI &gt; 0.25):</strong> Adding further exposure to {activeTicker} will exacerbate portfolio concentration risk.
+        {/* Track */}
+        <div
+          style={{
+            position: 'relative',
+            height: 8,
+            background: 'var(--color-subtle)',
+            borderRadius: 4,
+            overflow: 'visible',
+          }}
+        >
+          {/* Fill */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: `${fillPct}%`,
+              background: riskColor,
+              borderRadius: 4,
+              transition: 'width 600ms ease',
+            }}
+          />
+          {/* Threshold marker */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${thresholdPct}%`,
+              top: -3,
+              bottom: -3,
+              width: 2,
+              background: 'var(--color-ink)',
+              borderRadius: 1,
+            }}
+            title={`Threshold: ${THRESHOLD}`}
+          />
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: 4,
+            fontFamily: 'var(--font-data)',
+            fontSize: 10,
+            color: 'var(--color-ink-faint)',
+          }}
+        >
+          <span>0.0</span>
+          <span style={{ color: 'var(--color-ink-muted)' }}>▲ {THRESHOLD} threshold</span>
+          <span>0.5+</span>
+        </div>
+      </div>
+
+      {/* Status callout */}
+      {isBreach ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+            padding: '10px 12px',
+            background: 'var(--color-risk-breach-bg)',
+            border: '1px solid var(--color-risk-breach-border)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: 16,
+          }}
+        >
+          <AlertTriangle size={14} style={{ color: 'var(--color-risk-breach)', flexShrink: 0, marginTop: 1 }} />
+          <p
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 12,
+              color: 'var(--color-ink)',
+              margin: 0,
+              lineHeight: 1.5,
+            }}
+          >
+            Portfolio concentration exceeds the 0.25 threshold. Adding more {activeTicker} will increase concentration risk.
+          </p>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 12px',
+            background: 'var(--color-risk-safe-bg)',
+            border: '1px solid var(--color-risk-safe-border)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: 16,
+          }}
+        >
+          <ShieldCheck size={13} style={{ color: 'var(--color-risk-safe)', flexShrink: 0 }} />
+          <p
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 12,
+              color: 'var(--color-ink-muted)',
+              margin: 0,
+            }}
+          >
+            Within diversification limits.
           </p>
         </div>
       )}
+
+      {/* Holdings — single list, this is the only place holdings appear */}
+      <p className="section-label" style={{ marginBottom: 10, marginTop: 0 }}>Holdings</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {holdings.map((h, i) => {
+          const isActive = h.ticker.toUpperCase() === activeTicker.toUpperCase();
+          const pnlPct = ((h.current_price - h.avg_buy_price) / h.avg_buy_price) * 100;
+          const isGain = pnlPct >= 0;
+
+          return (
+            <div
+              key={h.holding_id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 0',
+                borderBottom: i < holdings.length - 1 ? '1px solid var(--color-border)' : 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Weight bar */}
+                <div
+                  style={{
+                    width: 3,
+                    height: 28,
+                    borderRadius: 2,
+                    background: isActive ? 'var(--color-accent)' : 'var(--color-border-md)',
+                    flexShrink: 0,
+                  }}
+                />
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-data)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: isActive ? 'var(--color-accent)' : 'var(--color-ink)',
+                      }}
+                    >
+                      {h.ticker}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-data)',
+                        fontSize: 11,
+                        color: 'var(--color-ink-faint)',
+                      }}
+                    >
+                      {Math.round(h.weight * 100)}%
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-ui)',
+                      fontSize: 11,
+                      color: 'var(--color-ink-faint)',
+                    }}
+                  >
+                    {h.quantity} shares
+                  </span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-data)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  ₹{h.current_price.toFixed(1)}
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-data)',
+                    fontSize: 11,
+                    color: isGain ? 'var(--color-risk-safe)' : 'var(--color-risk-breach)',
+                  }}
+                >
+                  {isGain ? '+' : ''}{pnlPct.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

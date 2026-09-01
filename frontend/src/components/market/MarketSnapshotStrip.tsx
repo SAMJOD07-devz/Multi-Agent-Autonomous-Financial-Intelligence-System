@@ -1,83 +1,132 @@
 // src/components/market/MarketSnapshotStrip.tsx
+// Three signal tiles — no decorative color, numbers in mono, signal badges use semantic colors
 import React from 'react';
 import type { MarketSignals } from '../../types';
 import { SignalBadge } from './SignalBadge';
-import { Activity, Gauge, MessageSquare, Zap } from 'lucide-react';
 
 interface MarketSnapshotStripProps {
   ticker: string;
   signals: MarketSignals;
 }
 
-export const MarketSnapshotStrip: React.FC<MarketSnapshotStripProps> = ({
-  signals
-}) => {
+export const MarketSnapshotStrip: React.FC<MarketSnapshotStripProps> = ({ signals }) => {
   const rsi = signals.price_momentum?.rsi_14 ?? 74.2;
   const macd = signals.price_momentum?.macd_signal ?? 'BULLISH';
   const volumeRatio = signals.volume_anomaly?.volume_spike_ratio ?? 1.25;
   const sentimentScore = signals.sentiment?.news_sentiment_score ?? 0.78;
 
+  const tiles = [
+    {
+      label: 'RSI-14',
+      value: rsi.toFixed(1),
+      suffix: '',
+      note: rsi > 70 ? 'Overbought' : rsi < 30 ? 'Oversold' : 'Neutral',
+      noteColor: rsi > 70
+        ? 'var(--color-risk-watch)'
+        : rsi < 30
+        ? 'var(--color-risk-breach)'
+        : 'var(--color-ink-faint)',
+      badge: null,
+    },
+    {
+      label: 'MACD Signal',
+      value: null,
+      badge: macd as string,
+      note: null,
+    },
+    {
+      label: 'Volume Spike',
+      value: volumeRatio.toFixed(2),
+      suffix: '× avg',
+      note: volumeRatio > 1.5 ? 'Elevated' : 'Normal',
+      noteColor: volumeRatio > 1.5 ? 'var(--color-risk-watch)' : 'var(--color-ink-faint)',
+      badge: null,
+    },
+    {
+      label: 'News Sentiment',
+      value: `${Math.round(sentimentScore * 100)}%`,
+      suffix: ' positive',
+      note: null,
+      badge: null,
+    },
+  ];
+
   return (
-    <div className="panel-card p-3 my-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="flex items-center space-x-3 p-2 rounded bg-[var(--bg-base)] border border-[var(--border-hairline)]">
-          <div className="p-2 rounded bg-cyan-500/10 text-cyan-400">
-            <Activity className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-semibold text-[var(--fg-tertiary)]">Price Momentum</span>
-            <div className="flex items-center space-x-2 mt-0.5">
-              <span className="tabular-nums font-mono text-sm font-bold text-[var(--fg-primary)]">
-                RSI {rsi}
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 1,
+        background: 'var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
+      }}
+      className="market-strip"
+    >
+      {tiles.map(tile => (
+        <div
+          key={tile.label}
+          style={{
+            background: 'var(--color-surface)',
+            padding: '14px 16px',
+          }}
+        >
+          <p
+            className="section-label"
+            style={{ margin: 0, marginBottom: 6 }}
+          >
+            {tile.label}
+          </p>
+          {tile.badge ? (
+            <SignalBadge signal={tile.badge} size="md" />
+          ) : (
+            <div>
+              <span
+                style={{
+                  fontFamily: 'var(--font-data)',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: 'var(--color-ink)',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {tile.value}
               </span>
-              <SignalBadge signal={macd === 'BULLISH' ? 'BULLISH' : 'BEARISH'} size="sm" />
+              {tile.suffix && (
+                <span
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 12,
+                    color: 'var(--color-ink-faint)',
+                    marginLeft: 4,
+                  }}
+                >
+                  {tile.suffix}
+                </span>
+              )}
+              {tile.note && (
+                <p
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 11,
+                    color: tile.noteColor,
+                    margin: '3px 0 0',
+                    fontWeight: 500,
+                  }}
+                >
+                  {tile.note}
+                </p>
+              )}
             </div>
-          </div>
+          )}
         </div>
+      ))}
 
-        <div className="flex items-center space-x-3 p-2 rounded bg-[var(--bg-base)] border border-[var(--border-hairline)]">
-          <div className="p-2 rounded bg-emerald-500/10 text-emerald-400">
-            <Zap className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-semibold text-[var(--fg-tertiary)]">Volume Anomaly Z-Score</span>
-            <div className="flex items-baseline space-x-1.5 mt-0.5">
-              <span className="tabular-nums font-mono text-sm font-bold text-emerald-400">
-                {volumeRatio.toFixed(2)}x
-              </span>
-              <span className="text-[10px] text-[var(--fg-secondary)]">vs 30d Avg</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 p-2 rounded bg-[var(--bg-base)] border border-[var(--border-hairline)]">
-          <div className="p-2 rounded bg-purple-500/10 text-purple-400">
-            <MessageSquare className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-semibold text-[var(--fg-tertiary)]">Media Sentiment</span>
-            <div className="flex items-center space-x-2 mt-0.5">
-              <span className="tabular-nums font-mono text-sm font-bold text-purple-300">
-                {Math.round(sentimentScore * 100)}%
-              </span>
-              <span className="text-[10px] text-emerald-400 font-semibold">Positive</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 p-2 rounded bg-[var(--bg-base)] border border-[var(--border-hairline)]">
-          <div className="p-2 rounded bg-amber-500/10 text-amber-400">
-            <Gauge className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-semibold text-[var(--fg-tertiary)]">Signal Engine</span>
-            <div className="flex items-center space-x-1.5 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-bold text-[var(--fg-primary)]">RAG + Ticks Active</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <style>{`
+        @media (max-width: 700px) {
+          .market-strip { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
     </div>
   );
 };

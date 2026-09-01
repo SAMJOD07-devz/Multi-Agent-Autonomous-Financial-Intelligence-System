@@ -1,6 +1,7 @@
 // src/components/common/DegradedAlert.tsx
+// Clean amber/rose degraded state using semantic risk colors only
 import React from 'react';
-import { AlertTriangle, ShieldAlert, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface DegradedAlertProps {
   reason: string;
@@ -13,62 +14,119 @@ export const DegradedAlert: React.FC<DegradedAlertProps> = ({
   reason,
   unavailableData,
   safeNextStep,
-  onRetry
+  onRetry,
 }) => {
   return (
-    <div className="panel-card bg-red-50/80 border-red-200 p-4 my-4 relative overflow-hidden">
-      <div className="flex items-start space-x-3">
-        <div className="p-2 rounded-lg bg-red-100 text-red-700 shrink-0">
-          <AlertTriangle className="w-5 h-5" />
+    <div
+      style={{
+        padding: '14px 16px',
+        background: 'var(--color-risk-watch-bg)',
+        border: '1px solid var(--color-risk-watch-border)',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+      }}
+    >
+      <AlertTriangle
+        size={16}
+        style={{ color: 'var(--color-risk-watch)', flexShrink: 0, marginTop: 2 }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 12,
+              fontWeight: 700,
+              color: 'var(--color-risk-watch)',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Degraded Data Mode
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11,
+              color: 'var(--color-ink-muted)',
+            }}
+          >
+            · Recommendation suppressed
+          </span>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200">
-              DEGRADED DATA MODE (SAFETY ENFORCED)
+
+        <p
+          style={{
+            fontFamily: 'var(--font-ui)',
+            fontSize: 13,
+            color: 'var(--color-ink)',
+            margin: 0,
+            lineHeight: 1.55,
+            marginBottom: unavailableData.length > 0 || safeNextStep ? 10 : 0,
+          }}
+        >
+          {reason}
+        </p>
+
+        {unavailableData.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: safeNextStep ? 10 : 0 }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-ink-muted)' }}>
+              Unavailable feeds:
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">
-              [ACTIONABLE RECOMMENDATION SUPPRESSED]
-            </span>
-          </div>
-
-          <p className="text-sm font-semibold text-slate-900 mt-2 leading-relaxed">
-            {reason}
-          </p>
-
-          {unavailableData.length > 0 && (
-            <div className="mt-2.5 flex items-center space-x-2 text-xs">
-              <span className="text-slate-600 font-medium">Suppressed Data Feeds:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {unavailableData.map((feed) => (
-                  <span
-                    key={feed}
-                    className="px-2 py-0.5 rounded bg-white text-slate-700 font-mono text-[11px] border border-slate-200"
-                  >
-                    {feed}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {safeNextStep && (
-            <div className="mt-3 p-3 rounded-lg bg-white border border-slate-200 flex items-center space-x-2 text-xs">
-              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="text-slate-700 flex-1">
-                <strong className="text-slate-900">Recommended Next Step:</strong> {safeNextStep}
+            {unavailableData.map(feed => (
+              <span
+                key={feed}
+                style={{
+                  fontFamily: 'var(--font-data)',
+                  fontSize: 11,
+                  color: 'var(--color-ink-muted)',
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  padding: '1px 7px',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                {feed}
               </span>
-              {onRetry && (
-                <button
-                  onClick={onRetry}
-                  className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white transition flex items-center space-x-1 shrink-0 shadow-xs"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Retry Feed</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {safeNextStep && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <p
+              style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 12,
+                color: 'var(--color-ink-muted)',
+                margin: 0,
+                flex: 1,
+              }}
+            >
+              {safeNextStep}
+            </p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="btn-ghost"
+                style={{ flexShrink: 0, fontSize: 12 }}
+              >
+                <RefreshCw size={12} />
+                Retry
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

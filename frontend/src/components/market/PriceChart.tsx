@@ -1,4 +1,6 @@
 // src/components/market/PriceChart.tsx
+// Full-width chart with proper ₹ Y-axis labels and time X-axis.
+// Light-theme tooltip. Price in accent blue, volume in neutral gray.
 import React from 'react';
 import {
   ResponsiveContainer,
@@ -8,78 +10,207 @@ import {
   CartesianGrid,
   Bar,
   Area,
-  ComposedChart
+  ComposedChart,
 } from 'recharts';
 import { mockHistoricalPriceData } from '../../mocks/fixtureData';
-import { LineChart } from 'lucide-react';
 
 interface PriceChartProps {
   ticker: string;
+  ma20Data?: { time: string; ma20: number }[];
 }
 
-export const PriceChart: React.FC<PriceChartProps> = ({ ticker }) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="panel-card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          <LineChart className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--fg-primary)]">
-            {ticker} Technical Price & Indicator Chart (Intraday)
+    <div
+      style={{
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        padding: '10px 14px',
+        boxShadow: 'var(--shadow-md)',
+      }}
+    >
+      <p
+        style={{
+          fontFamily: 'var(--font-data)',
+          fontSize: 11,
+          color: 'var(--color-ink-muted)',
+          margin: 0,
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </p>
+      {payload.map((entry: any, i: number) => (
+        entry.value !== undefined && entry.dataKey !== 'volume' && (
+          <div
+            key={i}
+            style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--color-ink)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 16,
+            }}
+          >
+            <span style={{ color: 'var(--color-ink-muted)', fontWeight: 400, textTransform: 'capitalize' }}>
+              {entry.dataKey}
+            </span>
+            <span>₹{Number(entry.value).toFixed(1)}</span>
+          </div>
+        )
+      ))}
+    </div>
+  );
+};
+
+export const PriceChart: React.FC<PriceChartProps> = ({ ticker }) => {
+  const data = mockHistoricalPriceData;
+
+  return (
+    <div>
+      {/* Chart header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+          flexWrap: 'wrap',
+          gap: 8,
+        }}
+      >
+        <div>
+          <h3
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 15,
+              fontWeight: 700,
+              color: 'var(--color-ink)',
+              margin: 0,
+            }}
+          >
+            {ticker} — Intraday Price
           </h3>
+          <p
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 12,
+              color: 'var(--color-ink-faint)',
+              margin: 0,
+              marginTop: 2,
+            }}
+          >
+            NSE · Prices in ₹ INR · Volume bars normalized
+          </p>
         </div>
-        <div className="flex items-center space-x-2 text-[10px] text-[var(--fg-tertiary)]">
-          <span className="flex items-center space-x-1">
-            <span className="w-2 h-0.5 bg-cyan-400"></span>
-            <span>Price (INR)</span>
-          </span>
-          <span className="flex items-center space-x-1">
-            <span className="w-2 h-0.5 bg-purple-400"></span>
-            <span>MA-20</span>
-          </span>
+
+        {/* Legend */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div
+              style={{
+                width: 20,
+                height: 2,
+                background: '#1B4FD8',
+                borderRadius: 1,
+              }}
+            />
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-ink-muted)' }}>
+              Price (₹)
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div
+              style={{
+                width: 12,
+                height: 10,
+                background: '#CBD5E1',
+                borderRadius: 2,
+              }}
+            />
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-ink-muted)' }}>
+              Volume
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="h-56 w-full">
+      <div style={{ height: 240, width: '100%' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={mockHistoricalPriceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <ComposedChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+          >
             <defs>
-              <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
+              <linearGradient id="priceArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1B4FD8" stopOpacity={0.12} />
+                <stop offset="100%" stopColor="#1B4FD8" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.06)" />
+
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="var(--color-border)"
+              vertical={false}
+            />
+
             <XAxis
               dataKey="time"
-              stroke="#6b7280"
-              fontSize={10}
+              stroke="var(--color-border)"
+              tick={{
+                fontFamily: 'var(--font-data)',
+                fontSize: 11,
+                fill: 'var(--color-ink-faint)',
+              }}
               tickLine={false}
-            />
-            <YAxis
-              domain={['auto', 'auto']}
-              stroke="#6b7280"
-              fontSize={10}
-              tickLine={false}
-              tickFormatter={(v) => `₹${v}`}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#111726',
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '6px',
-                fontSize: '11px',
-                color: '#f3f4f6'
+              axisLine={{ stroke: 'var(--color-border)' }}
+              label={{
+                value: 'Time (IST)',
+                position: 'insideBottomRight',
+                offset: -8,
+                fontFamily: 'var(--font-ui)',
+                fontSize: 10,
+                fill: 'var(--color-ink-faint)',
               }}
             />
+
+            <YAxis
+              domain={['auto', 'auto']}
+              stroke="var(--color-border)"
+              tick={{
+                fontFamily: 'var(--font-data)',
+                fontSize: 11,
+                fill: 'var(--color-ink-faint)',
+              }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={v => `₹${v}`}
+              width={64}
+            />
+
+            <Tooltip content={<CustomTooltip />} />
+
             <Area
               type="monotone"
               dataKey="price"
-              stroke="#38bdf8"
+              stroke="#1B4FD8"
               strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#priceGradient)"
+              fill="url(#priceArea)"
+              dot={false}
+              activeDot={{ r: 4, fill: '#1B4FD8', stroke: 'white', strokeWidth: 2 }}
             />
-            <Bar dataKey="volume" yAxisId={0} fill="#34d399" opacity={0.25} barSize={12} />
+
+            <Bar
+              dataKey="volume"
+              fill="#CBD5E1"
+              opacity={0.6}
+              barSize={14}
+              radius={[2, 2, 0, 0]}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

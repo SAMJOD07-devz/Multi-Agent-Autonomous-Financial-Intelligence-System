@@ -1,194 +1,536 @@
 // src/pages/OverviewPage.tsx
+// Two states:
+//  1. LANDING — no analysis run yet. Hero: prompt to analyze + past session history
+//  2. ACTIVE  — analysis loaded. Hero: active ticker snapshot + signals + recent sessions
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../state/useAppStore';
-import { GettingStartedChecklist } from '../components/tour/GettingStartedChecklist';
-import { MarketSnapshotStrip } from '../components/market/MarketSnapshotStrip';
-import { PriceChart } from '../components/market/PriceChart';
-import { OrchestrationCanvas } from '../components/agents/OrchestrationCanvas';
-import { mockUserHoldings } from '../mocks/fixtureData';
-import { Search, ArrowRight, Server, PieChart, Activity } from 'lucide-react';
+import { mockHistoricalPriceData } from '../mocks/fixtureData';
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+} from 'recharts';
+import {
+  ArrowRight,
+  TrendingUp, TrendingDown, Minus,
+  CheckCircle2, AlertTriangle,
+  Clock, Search, BarChart2, FileText, History,
+} from 'lucide-react';
+
+/* ── helpers ──────────────────────────────────────────── */
+
+const SignalPill = ({ signal }: { signal: string }) => {
+  const map: Record<string, { color: string; Icon: typeof TrendingUp }> = {
+    BULLISH: { color: 'var(--color-risk-safe)',   Icon: TrendingUp },
+    NEUTRAL: { color: 'var(--color-risk-watch)',  Icon: Minus },
+    BEARISH: { color: 'var(--color-risk-breach)', Icon: TrendingDown },
+  };
+  const { color, Icon } = map[signal] ?? map.NEUTRAL;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600,
+      color, border: `1px solid ${color}33`, background: `${color}12`,
+      padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+    }}>
+      <Icon size={11} />{signal}
+    </span>
+  );
+};
+
+const StatusChip = ({
+  ok, value,
+}: { ok: boolean; value: string }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+    {ok
+      ? <CheckCircle2 size={13} color="var(--color-risk-safe)" />
+      : <AlertTriangle size={13} color="var(--color-risk-watch)" />}
+    <span style={{
+      fontFamily: 'var(--font-data)', fontSize: 12, fontWeight: 600,
+      color: ok ? 'var(--color-ink)' : 'var(--color-risk-watch)',
+    }}>{value}</span>
+  </div>
+);
+
+/* ── component ────────────────────────────────────────── */
 
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const {
-    activeTicker,
-    activeProfile,
-    analysisResult,
-    isLoading,
-    sessionsHistory,
-    setActiveTicker
+    setActiveTicker,
+    analysisResult, sessionsHistory, wsConnectionState,
   } = useAppStore();
 
-  const hhiScore = analysisResult?.telemetry?.risk_concentration_score ?? 0.28;
-  const isHighRisk = hhiScore > 0.25;
+  const rec     = analysisResult?.recommendation;
+  const agents  = analysisResult?.agent_outputs ?? [];
+  const latency = analysisResult?.telemetry?.latency_ms;
 
-  return (
-    <div className="space-y-4">
-      <div className="panel-card-accent p-5 bg-gradient-to-r from-blue-50/80 via-white to-indigo-50/40">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-600 font-mono">
-                Executive Market Intelligence Briefing
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
-                Market Feed Active
-              </span>
-            </div>
-            <h2 className="text-xl font-extrabold text-slate-900 mt-1">
-              Autonomous Financial Intelligence Workstation
-            </h2>
-            <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
-              Synthesizing real-time market data, technical momentum, and grounded SEBI corporate filings across three specialized reasoning agents. Tailored to your <strong>{activeProfile}</strong> risk profile.
-            </p>
-          </div>
+  const latestPrice = mockHistoricalPriceData[mockHistoricalPriceData.length - 1]?.price;
+  const firstPrice  = mockHistoricalPriceData[0]?.price;
+  const priceDelta  = latestPrice - firstPrice;
+  const pricePct    = ((priceDelta / firstPrice) * 100).toFixed(2);
+  const isUp        = priceDelta >= 0;
 
-          <div className="flex items-center space-x-3 shrink-0">
-            <button
-              onClick={() => navigate('/analyze')}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-md shadow-blue-500/20 flex items-center space-x-2"
-            >
-              <Search className="w-4 h-4" />
-              <span>Analyze Stock Ticker</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <GettingStartedChecklist />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
-          <MarketSnapshotStrip
-            ticker={activeTicker}
-            signals={analysisResult?.market_signals || {}}
-          />
-
-          <PriceChart ticker={activeTicker} />
-
-          <OrchestrationCanvas
-            agentOutputs={analysisResult?.agent_outputs || []}
-            isAnalyzing={isLoading}
-            activeProfile={activeProfile}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="panel-card p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5">
-                <PieChart className="w-4 h-4 text-blue-600" />
-                <span>Portfolio at a Glance</span>
-              </span>
-              <button
-                onClick={() => navigate('/portfolio')}
-                className="text-[10px] font-bold text-blue-600 hover:underline flex items-center space-x-1"
-              >
-                <span>Full Portfolio</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 mb-3">
-              <span className="text-[10px] uppercase font-semibold text-slate-500">Herfindahl Index (HHI)</span>
-              <div className="flex items-baseline justify-between mt-1">
-                <span className="text-lg font-bold font-mono text-slate-900">{hhiScore.toFixed(3)}</span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                    isHighRisk
-                      ? 'bg-red-50 text-red-700 border-red-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  {isHighRisk ? 'High Concentration' : 'Diversified'}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {mockUserHoldings.slice(0, 3).map((h) => (
-                <div key={h.holding_id} className="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                  <span className="font-mono font-bold text-slate-900">{h.ticker}</span>
-                  <span className="tabular-nums font-mono text-slate-600">₹{h.current_price.toFixed(1)}</span>
-                  <span className="font-mono text-blue-600 font-bold">{Math.round(h.weight * 100)}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel-card p-4 space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5 mb-2">
-              <Server className="w-4 h-4 text-emerald-600" />
-              <span>System Health & Feeds</span>
+  /* ── SYSTEM HEALTH strip (shared by both states) ── */
+  const SystemHealth = () => (
+    <div className="panel-card" style={{ padding: '18px 20px' }}>
+      <p className="section-label" style={{ marginTop: 0, marginBottom: 12 }}>System</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {[
+          { label: 'WebSocket feed',  ok: wsConnectionState === 'live', value: wsConnectionState },
+          { label: 'FastAPI backend', ok: true,                          value: 'Online' },
+          { label: 'Latency',         ok: latency == null || latency < 500, value: latency != null ? `${latency.toFixed(0)} ms` : '—' },
+        ].map(r => (
+          <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--color-ink-muted)' }}>
+              {r.label}
             </span>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-              <div className="p-2 rounded bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[9px]">FastAPI REST</span>
-                <span className="text-emerald-700 font-bold">ONLINE</span>
-              </div>
-              <div className="p-2 rounded bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[9px]">WS Agent Trace</span>
-                <span className="text-emerald-700 font-bold">CONNECTED</span>
-              </div>
-              <div className="p-2 rounded bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[9px]">SEBI RAG Pipeline</span>
-                <span className="text-emerald-700 font-bold">VERIFIED</span>
-              </div>
-              <div className="p-2 rounded bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[9px]">NSE Market Feed</span>
-                <span className="text-emerald-700 font-bold">LIVE</span>
-              </div>
-            </div>
+            <StatusChip ok={r.ok} value={r.value} />
           </div>
-        </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  /* ── RECENT SESSIONS panel (shared) ── */
+  const RecentSessions = () => (
+    <div className="panel-card" style={{ padding: '18px 20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <p className="section-label" style={{ margin: 0 }}>Recent sessions</p>
+        <button onClick={() => navigate('/sessions')} style={{
+          background: 'none', border: 'none', cursor: 'pointer', display: 'flex',
+          alignItems: 'center', gap: 4, fontFamily: 'var(--font-ui)', fontSize: 11,
+          color: 'var(--color-accent-text)', textDecoration: 'underline', textUnderlineOffset: 3,
+        }}>
+          View all <ArrowRight size={11} />
+        </button>
       </div>
 
-      <div className="panel-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center space-x-1.5">
-            <Activity className="w-4 h-4 text-blue-600" />
-            <span>Recent Analysis Interaction Sessions</span>
-          </h3>
-          <button
-            onClick={() => navigate('/sessions')}
-            className="text-[10px] font-bold text-blue-600 hover:underline flex items-center space-x-1"
-          >
-            <span>View All Sessions</span>
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {sessionsHistory.slice(0, 3).map((s) => (
-            <div
+      {sessionsHistory.length === 0 ? (
+        <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--color-ink-faint)', margin: 0 }}>
+          No past sessions yet. Run your first analysis above.
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {sessionsHistory.slice(0, 5).map((s, i) => (
+            <button
               key={s.session_id}
               onClick={() => {
                 setActiveTicker(s.ticker);
                 navigate('/analyze');
               }}
-              className="p-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-blue-400 cursor-pointer transition flex items-center justify-between"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer',
+                textAlign: 'left', borderBottom: i < sessionsHistory.length - 1 ? '1px solid var(--color-border)' : 'none',
+              }}
             >
               <div>
-                <div className="flex items-center space-x-2 font-mono font-bold text-slate-900 text-xs">
-                  <span>{s.ticker}</span>
-                  <span className="text-[10px] text-slate-500 font-normal">({s.profile})</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--font-data)', fontSize: 13, fontWeight: 700, color: 'var(--color-ink)' }}>
+                    {s.ticker}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-ink-faint)' }}>
+                    {s.profile}
+                  </span>
+                  {s.degraded_state && (
+                    <AlertTriangle size={11} color="var(--color-risk-watch)" />
+                  )}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">
-                  {new Date(s.created_at).toLocaleTimeString()}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                  <Clock size={10} color="var(--color-ink-faint)" />
+                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-ink-faint)' }}>
+                    {new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </div>
-
-              <div className="text-right">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 uppercase font-mono">
+              <div style={{ textAlign: 'right' }}>
+                <span style={{
+                  fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600,
+                  color: 'var(--color-ink-muted)', border: '1px solid var(--color-border)',
+                  padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+                }}>
                   {s.status_label}
                 </span>
+                <div style={{ fontFamily: 'var(--font-data)', fontSize: 11, color: 'var(--color-ink-faint)', marginTop: 3 }}>
+                  {Math.round(s.confidence * 100)}%
+                </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
+      )}
+    </div>
+  );
+
+  /* ═══════════════════════════════════════════════════════════
+     STATE 1 — LANDING (no analysis run yet)
+     Hero: welcome + quick actions; right: past sessions + system
+  ════════════════════════════════════════════════════════════ */
+  if (!analysisResult) {
+    const QUICK_TICKERS = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TATAMOTORS'];
+
+    return (
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '40px 24px 64px' }}>
+
+        {/* Page greeting */}
+        <div style={{ marginBottom: 36 }}>
+          <h1 style={{
+            fontFamily: 'var(--font-ui)', fontSize: 28, fontWeight: 800,
+            color: 'var(--color-ink)', margin: 0, letterSpacing: '-0.03em',
+          }}>
+            Good morning, investor
+          </h1>
+          <p style={{
+            fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--color-ink-muted)',
+            margin: '6px 0 0',
+          }}>
+            No analysis loaded yet. Search a ticker or pick from recent history below.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 24, alignItems: 'start' }}
+          className="overview-grid"
+        >
+          {/* ── Left: landing hero ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* Search CTA card */}
+            <div className="panel-card" style={{ padding: '36px 32px' }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 12,
+                background: 'var(--color-accent-light)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 20,
+              }}>
+                <Search size={22} color="var(--color-accent)" />
+              </div>
+              <h2 style={{
+                fontFamily: 'var(--font-ui)', fontSize: 20, fontWeight: 700,
+                color: 'var(--color-ink)', margin: 0, letterSpacing: '-0.02em',
+              }}>
+                Analyze a stock
+              </h2>
+              <p style={{
+                fontFamily: 'var(--font-ui)', fontSize: 13, lineHeight: 1.65,
+                color: 'var(--color-ink-muted)', margin: '8px 0 24px',
+              }}>
+                Enter any NSE ticker in the search bar above and click Analyze. Three parallel agents will run simultaneously — Fundamental RAG, Technical Momentum, and Media Sentiment — and synthesize into a single cited, profile-adjusted view.
+              </p>
+
+              {/* Quick ticker chips */}
+              <p className="section-label" style={{ margin: '0 0 10px' }}>Popular tickers</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {QUICK_TICKERS.map(t => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      setActiveTicker(t);
+                      navigate('/analyze');
+                    }}
+                    style={{
+                      padding: '7px 16px',
+                      fontFamily: 'var(--font-data)', fontSize: 12, fontWeight: 700,
+                      color: 'var(--color-ink)',
+                      background: 'var(--color-subtle)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer',
+                      transition: 'border-color 150ms, color 150ms',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      e.currentTarget.style.color = 'var(--color-accent)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--color-border)';
+                      e.currentTarget.style.color = 'var(--color-ink)';
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Feature summary cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }} className="feature-grid">
+              {[
+                {
+                  icon: BarChart2,
+                  label: 'Three parallel agents',
+                  desc: 'Fundamental RAG, Technical, and Sentiment agents run simultaneously and converge into one synthesis.',
+                },
+                {
+                  icon: FileText,
+                  label: 'SEBI-grounded citations',
+                  desc: 'Every fundamental finding is anchored to official SEBI corporate filings with verbatim excerpts.',
+                },
+                {
+                  icon: History,
+                  label: 'Profile-adjusted output',
+                  desc: 'Conservative vs Aggressive profile visibly shifts signal weighting, decision thresholds, and rationale.',
+                },
+              ].map(({ icon: Icon, label, desc }) => (
+                <div key={label} className="panel-card" style={{ padding: '18px 20px' }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: 'var(--color-subtle)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    marginBottom: 12,
+                  }}>
+                    <Icon size={18} color="var(--color-ink-muted)" />
+                  </div>
+                  <p style={{
+                    fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700,
+                    color: 'var(--color-ink)', margin: '0 0 6px',
+                  }}>
+                    {label}
+                  </p>
+                  <p style={{
+                    fontFamily: 'var(--font-ui)', fontSize: 12, lineHeight: 1.55,
+                    color: 'var(--color-ink-muted)', margin: 0,
+                  }}>
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Past session history — prominent on landing */}
+            {sessionsHistory.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <h3 style={{
+                    fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 700,
+                    color: 'var(--color-ink)', margin: 0,
+                  }}>
+                    Previous analyses
+                  </h3>
+                  <button onClick={() => navigate('/sessions')} style={{
+                    background: 'none', border: 'none', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', gap: 4, fontFamily: 'var(--font-ui)', fontSize: 12,
+                    color: 'var(--color-accent-text)', textDecoration: 'underline', textUnderlineOffset: 3,
+                  }}>
+                    Full history <ArrowRight size={12} />
+                  </button>
+                </div>
+
+                {/* Session history table */}
+                <div
+                  className="panel-card"
+                  style={{ overflow: 'hidden' }}
+                >
+                  {/* Table header */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.5fr 1fr 1fr 1fr 80px',
+                    padding: '10px 20px',
+                    background: 'var(--color-subtle)',
+                    borderBottom: '1px solid var(--color-border)',
+                  }}>
+                    {['Ticker', 'Profile', 'Signal', 'Confidence', 'Time'].map(h => (
+                      <span key={h} className="section-label" style={{ margin: 0 }}>{h}</span>
+                    ))}
+                  </div>
+
+                  {sessionsHistory.slice(0, 8).map((s, i) => (
+                    <button
+                      key={s.session_id}
+                      onClick={() => {
+                        setActiveTicker(s.ticker);
+                        navigate('/analyze');
+                      }}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1.5fr 1fr 1fr 1fr 80px',
+                        padding: '13px 20px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        textAlign: 'left', width: '100%',
+                        borderBottom: i < sessionsHistory.length - 1 ? '1px solid var(--color-border)' : 'none',
+                        transition: 'background 120ms',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-subtle)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontFamily: 'var(--font-data)', fontSize: 13, fontWeight: 700, color: 'var(--color-accent-text)' }}>
+                          {s.ticker}
+                        </span>
+                        {s.degraded_state && <AlertTriangle size={11} color="var(--color-risk-watch)" />}
+                      </div>
+                      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--color-ink-muted)', alignSelf: 'center' }}>
+                        {s.profile}
+                      </span>
+                      <div style={{ alignSelf: 'center' }}>
+                        <span style={{
+                          fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600,
+                          color: 'var(--color-ink-muted)', border: '1px solid var(--color-border)',
+                          padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+                        }}>
+                          {s.status_label}
+                        </span>
+                      </div>
+                      <span style={{ fontFamily: 'var(--font-data)', fontSize: 13, fontWeight: 700, color: 'var(--color-ink)', alignSelf: 'center' }}>
+                        {Math.round(s.confidence * 100)}%
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-data)', fontSize: 11, color: 'var(--color-ink-faint)', alignSelf: 'center' }}>
+                        {new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Right: system health ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <SystemHealth />
+          </div>
+        </div>
+
+        <style>{`
+          @media (max-width: 899px) { .overview-grid { grid-template-columns: 1fr !important; } }
+          @media (max-width: 700px) { .feature-grid { grid-template-columns: 1fr !important; } }
+        `}</style>
       </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     STATE 2 — ACTIVE (analysis loaded)
+     Hero: ticker snapshot + mini chart + signals; right: sessions + system
+  ════════════════════════════════════════════════════════════ */
+  return (
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px 56px' }}>
+
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{
+          fontFamily: 'var(--font-ui)', fontSize: 26, fontWeight: 800,
+          color: 'var(--color-ink)', margin: 0, letterSpacing: '-0.03em',
+        }}>
+          Good morning, investor
+        </h1>
+        <p style={{ fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--color-ink-muted)', margin: '5px 0 0' }}>
+          Here's the current state of your intelligence workstation.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 24, alignItems: 'start' }}
+        className="overview-grid"
+      >
+        {/* ── Left: active ticker ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Ticker snapshot */}
+          <div className="panel-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+              <div>
+                <p className="section-label" style={{ margin: 0, marginBottom: 4 }}>Active ticker</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                  <span style={{ fontFamily: 'var(--font-data)', fontSize: 22, fontWeight: 800, color: 'var(--color-ink)' }}>
+                    {analysisResult.ticker}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-data)', fontSize: 18, fontWeight: 700, color: 'var(--color-ink)' }}>
+                    ₹{latestPrice?.toFixed(1)}
+                  </span>
+                  <span style={{
+                    fontFamily: 'var(--font-data)', fontSize: 13, fontWeight: 600,
+                    color: isUp ? 'var(--color-risk-safe)' : 'var(--color-risk-breach)',
+                  }}>
+                    {isUp ? '+' : ''}{pricePct}% today
+                  </span>
+                </div>
+              </div>
+              {rec && (
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-data)', fontSize: 28, fontWeight: 800, color: 'var(--color-ink)', lineHeight: 1 }}>
+                    {Math.round(rec.confidence * 100)}%
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-ink-faint)', marginTop: 2 }}>
+                    signal confidence
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Mini chart */}
+            <div style={{ height: 120, marginBottom: 16 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={mockHistoricalPriceData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="miniArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#1B4FD8" stopOpacity={0.14} />
+                      <stop offset="100%" stopColor="#1B4FD8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="time" hide />
+                  <YAxis domain={['auto', 'auto']} hide />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-data)' }}
+                    formatter={(v: any) => [`₹${Number(v).toFixed(1)}`, 'Price']}
+                  />
+                  <Area type="monotone" dataKey="price" stroke="#1B4FD8" strokeWidth={2} fill="url(#miniArea)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {rec && (
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13, lineHeight: 1.6, color: 'var(--color-ink-muted)', margin: '0 0 16px' }}>
+                {rec.summary}
+              </p>
+            )}
+            <button onClick={() => navigate('/analyze')} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+              Open full analysis <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {/* Agent signals — compact */}
+          {agents.length > 0 && (
+            <div className="panel-card" style={{ padding: '20px' }}>
+              <p className="section-label" style={{ marginBottom: 12, marginTop: 0 }}>Agent signals</p>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {agents.map((a, i) => (
+                  <div key={a.agent_name} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 0',
+                    borderBottom: i < agents.length - 1 ? '1px solid var(--color-border)' : 'none',
+                    gap: 12,
+                  }}>
+                    <div>
+                      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, color: 'var(--color-ink)', textTransform: 'capitalize' }}>
+                        {a.agent_name}
+                      </span>
+                      <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-ink-faint)', margin: '2px 0 0' }}>
+                        {a.reasoning.slice(0, 80)}…
+                      </p>
+                    </div>
+                    <SignalPill signal={a.classification} />
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => navigate('/analyze')} style={{
+                display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
+                cursor: 'pointer', fontFamily: 'var(--font-ui)', fontSize: 12,
+                color: 'var(--color-accent-text)', padding: '10px 0 0',
+                textDecoration: 'underline', textUnderlineOffset: 3,
+              }}>
+                View full reasoning trail <ArrowRight size={12} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Right: sessions + system ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <RecentSessions />
+          <SystemHealth />
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 899px) { .overview-grid { grid-template-columns: 1fr !important; } }
+      `}</style>
     </div>
   );
 };

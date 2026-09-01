@@ -1,8 +1,10 @@
 // src/components/agents/ReasoningTrace.tsx
+// The agent reasoning trail is the primary hero content.
+// No dark console panel in default view. Status is a compact inline row, not a card grid.
 import React, { useState } from 'react';
 import type { WSEvent, AgentOutput, Citation } from '../../types';
 import { AgentCard } from './AgentCard';
-import { Terminal, Cpu, CheckCircle2, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface ReasoningTraceProps {
   agentOutputs: AgentOutput[];
@@ -15,97 +17,174 @@ export const ReasoningTrace: React.FC<ReasoningTraceProps> = ({
   agentOutputs,
   wsEvents,
   isAnalyzing,
-  onSelectCitation
+  onSelectCitation,
 }) => {
-  const [showRawConsole, setShowRawConsole] = useState(false);
+  const [showRawLog, setShowRawLog] = useState(false);
+
+  const agents = ['fundamental', 'technical', 'sentiment'];
 
   return (
-    <div className="space-y-4">
-      <div className="panel-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <Cpu className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--fg-primary)]">
-              Multi-Agent Parallel Execution Chain
-            </h3>
-          </div>
+    <div>
+      {/* Section header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: 'var(--font-ui)',
+            fontSize: 16,
+            fontWeight: 700,
+            color: 'var(--color-ink)',
+            margin: 0,
+          }}
+        >
+          Agent Reasoning
+        </h2>
 
-          <button
-            onClick={() => setShowRawConsole(!showRawConsole)}
-            className="px-2.5 py-1 rounded bg-[var(--bg-base)] hover:bg-zinc-800 text-[10px] font-mono text-[var(--fg-secondary)] border border-[var(--border-hairline)] flex items-center space-x-1.5 transition"
-          >
-            <Terminal className="w-3 h-3 text-cyan-400" />
-            <span>{showRawConsole ? 'Hide Event Console' : 'View Realtime Event Log'}</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          {['fundamental', 'technical', 'sentiment'].map((agentKey) => {
-            const output = agentOutputs.find((a) => a.agent_name.toLowerCase() === agentKey);
-            const isDone = output && (output.status === 'completed' || output.status === 'SUCCESS');
-
+        {/* Compact status row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {agents.map(key => {
+            const output = agentOutputs.find(a => a.agent_name.toLowerCase() === key);
+            const done = output && (output.status === 'completed' || output.status === 'SUCCESS');
+            const failed = output && (output.status === 'failed' || output.status === 'unavailable');
             return (
               <div
-                key={agentKey}
-                className={`p-2 rounded border text-left flex items-center space-x-2 transition ${
-                  isDone
-                    ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+                key={key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 12,
+                  color: done
+                    ? 'var(--color-risk-safe)'
+                    : failed
+                    ? 'var(--color-risk-breach)'
                     : isAnalyzing
-                    ? 'bg-cyan-950/20 border-cyan-500/30 text-cyan-300 animate-pulse'
-                    : 'bg-[var(--bg-base)] border-[var(--border-hairline)] text-[var(--fg-tertiary)]'
-                }`}
+                    ? 'var(--color-ink-muted)'
+                    : 'var(--color-ink-faint)',
+                }}
               >
-                {isDone ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                {done ? (
+                  <CheckCircle2 size={13} />
+                ) : failed ? (
+                  <AlertCircle size={13} />
                 ) : isAnalyzing ? (
-                  <Loader2 className="w-4 h-4 text-cyan-400 animate-spin shrink-0" />
+                  <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
-                  <span className="w-2 h-2 rounded-full bg-zinc-600 shrink-0" />
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: 'var(--color-border-md)',
+                      display: 'inline-block',
+                    }}
+                  />
                 )}
-                <div className="truncate">
-                  <div className="text-[11px] font-bold capitalize">{agentKey} Agent</div>
-                  <div className="text-[9px] opacity-75">
-                    {isDone ? `${output?.classification} (${Math.round((output?.confidence || 0) * 100)}%)` : isAnalyzing ? 'Streaming Reasoning...' : 'Idle'}
-                  </div>
-                </div>
+                <span style={{ textTransform: 'capitalize' }}>{key}</span>
               </div>
             );
           })}
+
+          {/* Developer raw log toggle — quiet, not prominent */}
+          <button
+            onClick={() => setShowRawLog(v => !v)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11,
+              color: 'var(--color-ink-faint)',
+              padding: '2px 0',
+            }}
+          >
+            Raw log
+            {showRawLog ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
         </div>
       </div>
 
-      {showRawConsole && (
-        <div className="panel-card p-3 bg-black/80 border-cyan-500/30">
-          <div className="flex items-center justify-between text-xs text-cyan-400 mb-2 font-mono">
-            <span className="flex items-center space-x-1.5">
-              <Terminal className="w-3.5 h-3.5" />
-              <span>WebSocket Realtime Event Console ({wsEvents.length} frames)</span>
-            </span>
-            <span className="text-[10px] text-zinc-500">Max 200 Bounded Buffer</span>
-          </div>
-
-          <div className="trace-console-scroll p-2 bg-zinc-950 rounded border border-zinc-800 space-y-1">
-            {wsEvents.length === 0 ? (
-              <div className="text-zinc-600 italic">No WebSocket trace events received yet. Click 'Run Analysis' to stream.</div>
-            ) : (
-              wsEvents.map((evt, idx) => (
-                <div key={idx} className="text-[11px] font-mono leading-tight">
-                  <span className="text-zinc-500">[{evt.timestamp?.slice(11, 19) || 'LOG'}]</span>{' '}
-                  <span className="text-cyan-400 font-semibold">#{evt.sequence_number}</span>{' '}
-                  <span className="text-purple-300 font-bold uppercase">{evt.event_type}</span>:{' '}
-                  <span className="text-zinc-300">{JSON.stringify(evt.payload)}</span>
-                </div>
-              ))
-            )}
-          </div>
+      {/* Raw event log — collapsed by default */}
+      {showRawLog && (
+        <div
+          style={{
+            background: '#F8F8F6',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '12px 14px',
+            marginBottom: 16,
+            maxHeight: 180,
+            overflowY: 'auto',
+          }}
+        >
+          {wsEvents.length === 0 ? (
+            <p
+              style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: 11,
+                color: 'var(--color-ink-faint)',
+                margin: 0,
+              }}
+            >
+              No events received. Start an analysis to stream trace events.
+            </p>
+          ) : (
+            wsEvents.slice(-50).map((evt, i) => (
+              <div
+                key={i}
+                style={{
+                  fontFamily: 'var(--font-data)',
+                  fontSize: 11,
+                  color: 'var(--color-ink-muted)',
+                  lineHeight: 1.6,
+                }}
+              >
+                <span style={{ color: 'var(--color-ink-faint)' }}>
+                  [{evt.timestamp?.slice(11, 19) ?? '—'}]
+                </span>{' '}
+                <span style={{ fontWeight: 700 }}>{evt.event_type}</span>{' '}
+                {JSON.stringify(evt.payload)}
+              </div>
+            ))
+          )}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {agentOutputs.map((agent, index) => (
-          <AgentCard key={index} agent={agent} onSelectCitation={onSelectCitation} />
-        ))}
-      </div>
+      {/* Agent reasoning rows — the hero */}
+      {agentOutputs.length === 0 && !isAnalyzing ? (
+        <div
+          style={{
+            padding: '32px 0',
+            textAlign: 'center',
+            fontFamily: 'var(--font-ui)',
+            fontSize: 13,
+            color: 'var(--color-ink-faint)',
+          }}
+        >
+          Run an analysis to see agent reasoning.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {agentOutputs.map((agent, i) => (
+            <AgentCard
+              key={agent.agent_name}
+              agent={agent}
+              onSelectCitation={onSelectCitation}
+              index={i}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 // src/components/agents/OrchestrationCanvas.tsx
 import React, { useState, useEffect } from 'react';
 import type { AgentOutput } from '../../types';
-import { Cpu } from 'lucide-react';
+import { Cpu, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface OrchestrationCanvasProps {
   agentOutputs: AgentOutput[];
@@ -25,111 +25,118 @@ export const OrchestrationCanvas: React.FC<OrchestrationCanvasProps> = ({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  const getAgentStatusColor = (agentName: string) => {
+  const getAgentColor = (agentName: string) => {
     const output = agentOutputs.find((a) => a.agent_name.toLowerCase() === agentName);
-    if (!output) return '#6b7280';
+    if (!output) return '#94a3b8';
     if (output.status === 'completed' || output.status === 'SUCCESS') {
-      return output.classification === 'BULLISH' ? '#10b981' : output.classification === 'BEARISH' ? '#ef4444' : '#f59e0b';
+      return output.classification === 'BULLISH' ? '#059669' : output.classification === 'BEARISH' ? '#dc2626' : '#d97706';
     }
-    return '#38bdf8';
+    return '#2563eb';
   };
 
   return (
-    <div className="panel-card p-4 my-4 relative overflow-hidden bg-gradient-to-b from-[var(--bg-elevated-1)] to-[var(--bg-base)]">
+    <div className="panel-card p-5 relative overflow-hidden bg-gradient-to-b from-white to-slate-50 border-slate-200">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
-          <Cpu className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--fg-primary)]">
-            Signature Market Orchestration Mesh (3D / SVG Semantic Fallback)
+          <Cpu className="w-4 h-4 text-blue-600" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
+            Multi-Agent Parallel Orchestration Graph
           </h3>
         </div>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/30 font-mono">
-          {isAnalyzing ? 'ORCHESTRATING IN PARALLEL' : 'SYNTHESIS MESH READY'}
+        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-mono font-bold flex items-center space-x-1">
+          <Sparkles className="w-3 h-3 text-blue-600" />
+          <span>{isAnalyzing ? 'ORCHESTRATING PARALLEL TRACE' : 'SYNTHESIS ENGINE READY'}</span>
         </span>
       </div>
 
-      <div className="h-52 w-full flex items-center justify-center relative">
-        <svg viewBox="0 0 400 200" className="w-full h-full max-w-lg">
+      <div className="h-56 w-full flex items-center justify-center relative">
+        <svg viewBox="0 0 440 220" className="w-full h-full max-w-xl">
           <defs>
-            <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.6} />
-              <stop offset="100%" stopColor="#090d16" stopOpacity={0.0} />
-            </radialGradient>
+            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#0f172a" floodOpacity="0.08" />
+            </filter>
+            <linearGradient id="blueGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#2563eb" />
+              <stop offset="100%" stopColor="#7c3aed" />
+            </linearGradient>
           </defs>
 
-          <circle cx="200" cy="100" r="35" fill="url(#coreGlow)" />
-          <circle
-            cx="200"
-            cy="100"
-            r="22"
-            fill="#111726"
-            stroke="#38bdf8"
+          {/* Connection Lines from 3 Agent Nodes to Core Synthesis Node */}
+          <path
+            d="M 100 55 Q 160 80 220 110"
+            fill="none"
+            stroke={getAgentColor('fundamental')}
             strokeWidth="2"
-            className={!reducedMotion && isAnalyzing ? 'animate-pulse' : ''}
+            strokeDasharray={isAnalyzing && !reducedMotion ? "5 5" : "none"}
+            className={isAnalyzing && !reducedMotion ? "animate-pulse" : ""}
           />
-          <text x="200" y="103" textAnchor="middle" fill="#38bdf8" fontSize="9" fontWeight="bold" fontFamily="sans-serif">
-            CORE SYNTHESIS
-          </text>
-
-          <line
-            x1="100"
-            y1="50"
-            x2="200"
-            y2="100"
-            stroke={getAgentStatusColor('fundamental')}
-            strokeWidth="1.5"
-            strokeDasharray="4 4"
-            className={!reducedMotion && isAnalyzing ? 'animate-dash' : ''}
+          <path
+            d="M 340 55 Q 280 80 220 110"
+            fill="none"
+            stroke={getAgentColor('technical')}
+            strokeWidth="2"
+            strokeDasharray={isAnalyzing && !reducedMotion ? "5 5" : "none"}
+            className={isAnalyzing && !reducedMotion ? "animate-pulse" : ""}
           />
-
-          <line
-            x1="300"
-            y1="50"
-            x2="200"
-            y2="100"
-            stroke={getAgentStatusColor('technical')}
-            strokeWidth="1.5"
-            strokeDasharray="4 4"
-            className={!reducedMotion && isAnalyzing ? 'animate-dash' : ''}
+          <path
+            d="M 220 175 L 220 110"
+            fill="none"
+            stroke={getAgentColor('sentiment')}
+            strokeWidth="2"
+            strokeDasharray={isAnalyzing && !reducedMotion ? "5 5" : "none"}
+            className={isAnalyzing && !reducedMotion ? "animate-pulse" : ""}
           />
 
-          <line
-            x1="200"
-            y1="165"
-            x2="200"
-            y2="100"
-            stroke={getAgentStatusColor('sentiment')}
-            strokeWidth="1.5"
-            strokeDasharray="4 4"
-            className={!reducedMotion && isAnalyzing ? 'animate-dash' : ''}
-          />
+          {/* Core Synthesis Convergence Node */}
+          <g transform="translate(220, 110)" filter="url(#softShadow)">
+            <circle cx="0" cy="0" r="28" fill="#ffffff" stroke="url(#blueGlow)" strokeWidth="3" />
+            <circle cx="0" cy="0" r="20" fill="#eff6ff" />
+            <text x="0" y="3" textAnchor="middle" fill="#1e1b4b" fontSize="9" fontWeight="bold" fontFamily="sans-serif">
+              SYNTHESIS
+            </text>
+          </g>
 
-          <g transform="translate(100, 50)">
-            <circle cx="0" cy="0" r="18" fill="#192238" stroke={getAgentStatusColor('fundamental')} strokeWidth="2" />
-            <text x="0" y="-24" textAnchor="middle" fill="#f3f4f6" fontSize="10" fontWeight="bold">
+          {/* Agent 1: Fundamental RAG Node */}
+          <g transform="translate(100, 55)" filter="url(#softShadow)">
+            <circle cx="0" cy="0" r="20" fill="#ffffff" stroke={getAgentColor('fundamental')} strokeWidth="2.5" />
+            <text x="0" y="-28" textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="bold">
               Fundamental RAG
             </text>
-          </g>
-
-          <g transform="translate(300, 50)">
-            <circle cx="0" cy="0" r="18" fill="#192238" stroke={getAgentStatusColor('technical')} strokeWidth="2" />
-            <text x="0" y="-24" textAnchor="middle" fill="#f3f4f6" fontSize="10" fontWeight="bold">
-              Technical Momentum
+            <text x="0" y="4" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold" fontFamily="monospace">
+              SEBI
             </text>
           </g>
 
-          <g transform="translate(200, 165)">
-            <circle cx="0" cy="0" r="18" fill="#192238" stroke={getAgentStatusColor('sentiment')} strokeWidth="2" />
-            <text x="0" y="32" textAnchor="middle" fill="#f3f4f6" fontSize="10" fontWeight="bold">
+          {/* Agent 2: Technical Momentum Node */}
+          <g transform="translate(340, 55)" filter="url(#softShadow)">
+            <circle cx="0" cy="0" r="20" fill="#ffffff" stroke={getAgentColor('technical')} strokeWidth="2.5" />
+            <text x="0" y="-28" textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="bold">
+              Technical Momentum
+            </text>
+            <text x="0" y="4" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold" fontFamily="monospace">
+              NSE
+            </text>
+          </g>
+
+          {/* Agent 3: Media Sentiment Node */}
+          <g transform="translate(220, 175)" filter="url(#softShadow)">
+            <circle cx="0" cy="0" r="20" fill="#ffffff" stroke={getAgentColor('sentiment')} strokeWidth="2.5" />
+            <text x="0" y="34" textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="bold">
               Media Sentiment
+            </text>
+            <text x="0" y="4" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold" fontFamily="monospace">
+              RAG
             </text>
           </g>
         </svg>
       </div>
 
-      <div className="flex justify-between items-center text-[10px] text-[var(--fg-tertiary)] border-t border-[var(--border-hairline)] pt-2 mt-1">
-        <span>Node state color maps to classification & signal pulse</span>
-        <span>Active Profile Weighting: <strong>{activeProfile} Policy</strong></span>
+      <div className="flex flex-wrap justify-between items-center text-[10px] text-slate-500 border-t border-slate-100 pt-2.5 mt-1 font-mono">
+        <span className="flex items-center space-x-1">
+          <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />
+          <span>Nodes converge in real-time onto Core Decision Engine</span>
+        </span>
+        <span>Active Policy: <strong className="text-slate-800">{activeProfile} Risk Persona</strong></span>
       </div>
     </div>
   );

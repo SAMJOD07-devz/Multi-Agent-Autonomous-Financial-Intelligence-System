@@ -1,140 +1,192 @@
 // src/components/layout/Navbar.tsx
+// Stripped to three zones: logo | ticker search + Analyze | live status
+// All diagnostics (latency, HHI, persona) removed — they live in the status strip
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../state/useAppStore';
-import { MetricCounter } from '../common/MetricCounter';
-import { Search, Cpu, Sparkles } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 
 interface NavbarProps {
   onRunAnalysis: () => void;
   onOpenTour: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis, onOpenTour }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis }) => {
   const navigate = useNavigate();
-  const {
-    activeTicker,
-    setActiveTicker,
-    activeProfile,
-    analysisResult,
-    isLoading,
-    wsConnectionState
-  } = useAppStore();
-
+  const { activeTicker, setActiveTicker, isLoading, wsConnectionState } = useAppStore();
   const [inputTicker, setInputTicker] = useState(activeTicker);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputTicker.trim()) {
-      setActiveTicker(inputTicker.trim().toUpperCase());
-      onRunAnalysis();
-      navigate('/analyze');
-    }
+    const t = inputTicker.trim().toUpperCase();
+    if (!t) return;
+    setActiveTicker(t);
+    onRunAnalysis();
+    navigate('/analyze');
   };
 
-  const tickerSuggestions = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TATAMOTORS'];
-
-  const latency = analysisResult?.telemetry?.latency_ms ?? 142.5;
-  const confidence = analysisResult?.telemetry?.combined_confidence ?? 0.79;
-  const hhi = analysisResult?.telemetry?.risk_concentration_score ?? 0.28;
+  const isLive = wsConnectionState === 'live';
+  const isConnecting = wsConnectionState === 'connecting' || wsConnectionState === 'reconnecting';
 
   return (
-    <header className="sticky top-0 z-[var(--z-sticky)] bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 shadow-xs">
-      <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="p-2 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
-            <Cpu className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-sm font-bold tracking-tight text-slate-900 font-sans">
-                AstraVest Intelligence
-              </h1>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                Light Edition
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-500 flex items-center space-x-2">
-              <span>Autonomous Financial Workstation</span>
-              <span className="text-slate-300">•</span>
-              <span className="flex items-center space-x-1">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    wsConnectionState === 'live'
-                      ? 'bg-emerald-500 animate-pulse'
-                      : wsConnectionState === 'connecting'
-                      ? 'bg-amber-500 animate-ping'
-                      : 'bg-slate-400'
-                  }`}
-                />
-                <span className="text-[9px] capitalize text-slate-600 font-medium">
-                  WS: {wsConnectionState}
-                </span>
-              </span>
-            </p>
-          </div>
-        </div>
+    <header
+      style={{
+        background: 'var(--color-surface)',
+        borderBottom: '1px solid var(--color-border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1400,
+          margin: '0 auto',
+          padding: '0 24px',
+          height: 52,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 24,
+        }}
+      >
+        {/* Zone 1: Logo */}
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
+            flexShrink: 0,
+          }}
+        >
+          {/* Logomark — simple geometric mark */}
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="6" fill="var(--color-accent)" />
+            <path d="M7 20L14 8l7 12" stroke="white" strokeWidth="2" strokeLinejoin="round" fill="none"/>
+            <circle cx="14" cy="8" r="2" fill="white"/>
+          </svg>
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontWeight: 700,
+              fontSize: 15,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            AstraVest
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontWeight: 400,
+              fontSize: 15,
+              color: 'var(--color-ink-muted)',
+            }}
+          >
+            Intelligence
+          </span>
+        </button>
 
-        <div className="flex items-center space-x-2 flex-1 max-w-md">
-          <form onSubmit={handleSearchSubmit} className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+        {/* Zone 2: Ticker search + Analyze */}
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            flex: 1,
+            maxWidth: 480,
+          }}
+        >
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search
+              size={14}
+              style={{
+                position: 'absolute',
+                left: 11,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--color-ink-faint)',
+                pointerEvents: 'none',
+              }}
+            />
             <input
               type="text"
               value={inputTicker}
-              onChange={(e) => setInputTicker(e.target.value.toUpperCase())}
-              placeholder="Analyze Stock Ticker (e.g. RELIANCE)..."
-              className="w-full pl-9 pr-16 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition tabular-nums font-semibold uppercase"
+              onChange={e => setInputTicker(e.target.value.toUpperCase())}
+              placeholder="Search ticker — RELIANCE, TCS, INFY…"
+              style={{
+                width: '100%',
+                paddingLeft: 32,
+                paddingRight: 12,
+                paddingTop: 7,
+                paddingBottom: 7,
+                fontFamily: 'var(--font-data)',
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--color-ink)',
+                background: 'var(--color-canvas)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                outline: 'none',
+                transition: 'border-color 150ms',
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-accent)')}
+              onBlur={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
             />
-            <button
-              type="submit"
-              disabled={isLoading || !inputTicker.trim()}
-              className="absolute right-1 top-1 px-2.5 py-1 text-[10px] font-bold uppercase rounded-md bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50 shadow-xs"
-            >
-              {isLoading ? 'Analyzing...' : 'Analyze'}
-            </button>
-          </form>
-
-          <div className="hidden lg:flex items-center space-x-1">
-            {tickerSuggestions.map((t) => (
-              <button
-                key={t}
-                onClick={() => {
-                  setInputTicker(t);
-                  setActiveTicker(t);
-                  onRunAnalysis();
-                  navigate('/analyze');
-                }}
-                className={`px-2 py-1 text-[10px] font-mono rounded-md border transition ${
-                  activeTicker === t
-                    ? 'bg-blue-50 text-blue-700 border-blue-300 font-bold'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
           </div>
-        </div>
-
-        <div className="flex items-center space-x-4 border-l border-slate-200 pl-4">
-          <MetricCounter label="Latency" value={latency.toFixed(1)} unit="ms" />
-          <MetricCounter label="Confidence" value={`${Math.round(confidence * 100)}%`} />
-          <MetricCounter label="HHI Score" value={hhi.toFixed(2)} alert={hhi > 0.25} />
-
-          <div className="hidden xl:flex flex-col">
-            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Profile</span>
-            <span className="text-xs font-bold text-slate-900 font-mono">{activeProfile}</span>
-          </div>
-
           <button
-            onClick={onOpenTour}
-            className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 transition flex items-center space-x-1.5"
+            type="submit"
+            disabled={isLoading || !inputTicker.trim()}
+            className="btn-primary"
+            style={{ flexShrink: 0 }}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Product Tour</span>
+            {isLoading ? (
+              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+            ) : null}
+            {isLoading ? 'Running…' : 'Analyze'}
           </button>
+        </form>
+
+        {/* Zone 3: Live status — dot + label only */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            flexShrink: 0,
+          }}
+        >
+          <span
+            className={isLive ? 'status-dot-live' : isConnecting ? 'status-dot-warn' : 'status-dot-offline'}
+            style={isLive ? { animation: 'pulse 2s ease-in-out infinite' } : undefined}
+          />
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--color-ink-muted)',
+            }}
+          >
+            {isLive ? 'Live' : isConnecting ? 'Connecting…' : 'Offline'}
+          </span>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </header>
   );
 };

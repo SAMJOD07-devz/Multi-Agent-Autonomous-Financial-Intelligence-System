@@ -1,7 +1,9 @@
 // src/components/synthesis/Recommendation.tsx
+// Synthesis hero block — the first thing eyes land on.
+// Confidence shown once here; never duplicated in header or agent cards' parent.
 import React from 'react';
 import type { Recommendation, RiskProfile } from '../../types';
-import { Info, ArrowUpRight, Lock, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, ExternalLink } from 'lucide-react';
 
 interface RecommendationProps {
   recommendation: Recommendation | null;
@@ -11,117 +13,244 @@ interface RecommendationProps {
   degradedState: boolean;
 }
 
+// Recommendation label → display style
+const LABEL_STYLES: Record<string, { color: string; bg: string; border: string }> = {
+  BUY:       { color: 'var(--color-risk-safe)',   bg: 'var(--color-risk-safe-bg)',   border: 'var(--color-risk-safe-border)' },
+  ACCUMULATE:{ color: 'var(--color-risk-safe)',   bg: 'var(--color-risk-safe-bg)',   border: 'var(--color-risk-safe-border)' },
+  WATCH:     { color: 'var(--color-risk-watch)',  bg: 'var(--color-risk-watch-bg)',  border: 'var(--color-risk-watch-border)' },
+  HOLD:      { color: 'var(--color-risk-watch)',  bg: 'var(--color-risk-watch-bg)',  border: 'var(--color-risk-watch-border)' },
+  REDUCE:    { color: 'var(--color-risk-breach)', bg: 'var(--color-risk-breach-bg)', border: 'var(--color-risk-breach-border)' },
+  SELL:      { color: 'var(--color-risk-breach)', bg: 'var(--color-risk-breach-bg)', border: 'var(--color-risk-breach-border)' },
+};
+
 export const RecommendationCard: React.FC<RecommendationProps> = ({
   recommendation,
   profile,
   citationCount,
   onViewCitations,
-  degradedState
+  degradedState,
 }) => {
   if (degradedState || !recommendation) {
     return (
-      <div className="panel-card p-5 border-amber-500/30 bg-amber-950/10">
-        <div className="flex items-center space-x-2 text-amber-400">
-          <Info className="w-5 h-5" />
-          <h3 className="font-semibold text-sm">Actionable Synthesis Blocked</h3>
+      <div
+        style={{
+          padding: '16px 20px',
+          background: 'var(--color-risk-breach-bg)',
+          border: '1px solid var(--color-risk-breach-border)',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 12,
+        }}
+      >
+        <AlertTriangle size={18} style={{ color: 'var(--color-risk-breach)', flexShrink: 0, marginTop: 1 }} />
+        <div>
+          <p
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'var(--color-ink)',
+              margin: 0,
+              marginBottom: 4,
+            }}
+          >
+            Recommendation suppressed
+          </p>
+          <p
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 13,
+              color: 'var(--color-ink-muted)',
+              margin: 0,
+              lineHeight: 1.6,
+            }}
+          >
+            The system is in degraded feed mode. Per investor safety policy, ungrounded recommendations are blocked. Review the agent reasoning for available partial findings.
+          </p>
         </div>
-        <p className="text-xs text-[var(--fg-secondary)] mt-2">
-          System is in Degraded Data Mode or zero source citations were retrieved. Per strict institutional safety policy, uncited or unverified investment recommendations are suppressed.
-        </p>
       </div>
     );
   }
 
-  const getLabelBadgeStyle = (label: string) => {
-    switch (label.toUpperCase()) {
-      case 'BUY':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
-      case 'ACCUMULATE':
-        return 'bg-teal-500/20 text-teal-300 border-teal-500/40';
-      case 'WATCH':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-      case 'HOLD':
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
-      case 'REDUCE':
-      case 'SELL':
-        return 'bg-rose-500/20 text-rose-400 border-rose-500/40';
-      default:
-        return 'bg-zinc-800 text-zinc-300 border-zinc-700';
-    }
-  };
+  const labelKey = recommendation.label?.toUpperCase() ?? 'WATCH';
+  const style = LABEL_STYLES[labelKey] ?? LABEL_STYLES.WATCH;
+  const confidencePct = Math.round(recommendation.confidence * 100);
 
   return (
-    <div className="panel-card-accent p-5 relative overflow-hidden">
-      <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-cyan-500/10 blur-2xl pointer-events-none" />
+    <div>
+      {/* Primary action + confidence — the hero row */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {/* Recommendation label — large */}
+          <span
+            style={{
+              display: 'inline-block',
+              padding: '6px 14px',
+              background: style.bg,
+              color: style.color,
+              border: `1px solid ${style.border}`,
+              borderRadius: 'var(--radius-md)',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+            }}
+          >
+            {recommendation.label}
+          </span>
 
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--fg-tertiary)]">
-              Synthesized Intelligence Output
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono">
-              Profile: {profile}
-            </span>
-          </div>
-
-          <div className="flex items-center space-x-3 mt-2">
+          {/* Action text if present */}
+          {recommendation.action && (
             <span
-              className={`text-base font-black px-3.5 py-1 rounded-md border tracking-wide uppercase shadow-sm ${getLabelBadgeStyle(
-                recommendation.label
-              )}`}
+              style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 20,
+                fontWeight: 700,
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.02em',
+              }}
             >
-              {recommendation.label}
+              {recommendation.action}
             </span>
-            <div className="flex flex-col">
-              <span className="text-xs font-semibold text-[var(--fg-primary)]">
-                {recommendation.action || 'Recommended Action'}
-              </span>
-              <span className="text-[10px] text-[var(--fg-tertiary)]">
-                Horizon: {recommendation.target_timeframe || '1-3 Months'}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
 
-        <div className="text-right">
-          <div className="text-[10px] text-[var(--fg-tertiary)] uppercase font-medium">Confidence Score</div>
-          <div className="text-xl font-bold tabular-nums text-emerald-400 mt-0.5">
-            {Math.round(recommendation.confidence * 100)}%
+        {/* Confidence — shown once, right side */}
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: 28,
+              fontWeight: 700,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+            }}
+          >
+            {confidencePct}%
           </div>
-          <div className="text-[10px] text-zinc-400 mt-0.5">
-            {recommendation.confidence >= 0.8 ? 'High Conviction' : 'Moderate Conviction'}
+          <div
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11,
+              color: 'var(--color-ink-faint)',
+              marginTop: 3,
+            }}
+          >
+            signal confidence
           </div>
         </div>
       </div>
 
-      <p className="text-xs text-[var(--fg-primary)] mt-3.5 leading-relaxed font-normal">
+      {/* Summary */}
+      <p
+        style={{
+          fontFamily: 'var(--font-ui)',
+          fontSize: 14,
+          lineHeight: 1.65,
+          color: 'var(--color-ink-muted)',
+          margin: 0,
+          marginBottom: 12,
+        }}
+      >
         {recommendation.summary}
       </p>
 
-      <div className="mt-3 p-3 rounded-md bg-[var(--bg-base)] border border-[var(--border-hairline)]">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center space-x-1">
-          <CheckCircle2 className="w-3 h-3" />
-          <span>Synthesis Decision Rationale</span>
-        </span>
-        <p className="text-[11px] text-[var(--fg-secondary)] mt-1.5 leading-relaxed">
+      {/* Rationale — slightly de-emphasized */}
+      <div
+        style={{
+          padding: '12px 14px',
+          background: 'var(--color-subtle)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: 14,
+        }}
+      >
+        <p
+          className="section-label"
+          style={{ marginBottom: 6, marginTop: 0 }}
+        >
+          Profile rationale — {profile}
+        </p>
+        <p
+          style={{
+            fontFamily: 'var(--font-ui)',
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: 'var(--color-ink-muted)',
+            margin: 0,
+          }}
+        >
           {recommendation.rationale}
         </p>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-[var(--border-hairline)] flex items-center justify-between">
-        <button
-          onClick={onViewCitations}
-          className="text-xs font-semibold text-[var(--accent)] hover:text-cyan-300 flex items-center space-x-1 transition group"
-        >
-          <span>Inspect {citationCount} Grounded Citations</span>
-          <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
-        </button>
-
-        <div className="flex items-center space-x-1 text-[10px] text-[var(--fg-tertiary)]">
-          <Lock className="w-3 h-3 text-emerald-400" />
-          <span>Non-Authoritative Intelligence</span>
+      {/* Footer: horizon + citations link */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {recommendation.target_timeframe && (
+            <span
+              style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 12,
+                color: 'var(--color-ink-muted)',
+              }}
+            >
+              Horizon:{' '}
+              <span
+                style={{
+                  fontFamily: 'var(--font-data)',
+                  fontWeight: 600,
+                  color: 'var(--color-ink)',
+                }}
+              >
+                {recommendation.target_timeframe}
+              </span>
+            </span>
+          )}
         </div>
+
+        {citationCount > 0 && (
+          <button
+            onClick={onViewCitations}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--color-accent-text)',
+              padding: 0,
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+            }}
+          >
+            <ShieldCheck size={13} />
+            {citationCount} grounded SEBI citations
+            <ExternalLink size={11} />
+          </button>
+        )}
       </div>
     </div>
   );

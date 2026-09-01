@@ -1,80 +1,179 @@
 // src/components/agents/AgentCard.tsx
-import React from 'react';
+// Full-width row layout — agent reasoning is the hero content.
+// Left 3px border uses signal color (the ONE place signal color appears in reasoning trail).
+// No colored card backgrounds. Citation inline below reasoning.
+import React, { useState } from 'react';
 import type { AgentOutput, Citation } from '../../types';
 import { SignalBadge } from '../market/SignalBadge';
-import { FileText, Cpu, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 interface AgentCardProps {
   agent: AgentOutput;
   onSelectCitation: (citation: Citation) => void;
+  index: number;
 }
 
-export const AgentCard: React.FC<AgentCardProps> = ({ agent, onSelectCitation }) => {
-  const getAgentTitle = (name: string) => {
-    switch (name.toLowerCase()) {
-      case 'fundamental':
-        return 'Fundamental & SEBI Filings RAG Agent';
-      case 'technical':
-        return 'Technical & Price Momentum Agent';
-      case 'sentiment':
-        return 'Market Sentiment & Executive Transcript Agent';
-      default:
-        return `${name.toUpperCase()} Agent`;
-    }
-  };
+const AGENT_DISPLAY: Record<string, { title: string; source: string }> = {
+  fundamental: { title: 'Fundamental Agent', source: 'SEBI Corporate Filings & RAG' },
+  technical:   { title: 'Technical Agent',   source: 'NSE Live Tick Feed' },
+  sentiment:   { title: 'Sentiment Agent',   source: 'Earnings Transcripts & News' },
+};
 
+export const AgentCard: React.FC<AgentCardProps> = ({ agent, onSelectCitation, index }) => {
+  const [expanded, setExpanded] = useState(true);
+
+  const key = agent.agent_name.toLowerCase();
+  const display = AGENT_DISPLAY[key] ?? { title: `${agent.agent_name} Agent`, source: 'Data Feed' };
+  const signal = agent.classification?.toUpperCase() ?? 'NEUTRAL';
   const isCompleted = agent.status === 'completed' || agent.status === 'SUCCESS';
 
+  const borderClass =
+    signal === 'BULLISH' ? 'agent-bullish' :
+    signal === 'BEARISH' ? 'agent-bearish' :
+    'agent-neutral';
+
   return (
-    <div className="panel-card p-4 transition">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center space-x-2.5">
-          <div className="p-2 rounded-md bg-[var(--bg-elevated-2)] border border-[var(--border-hairline)] text-cyan-400">
-            <Cpu className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h4 className="text-xs font-bold text-[var(--fg-primary)]">
-                {getAgentTitle(agent.agent_name)}
-              </h4>
-              {isCompleted ? (
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-              ) : (
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+    <div
+      className={borderClass}
+      style={{
+        background: 'var(--color-surface)',
+        borderRadius: `0 var(--radius-md) var(--radius-md) 0`,
+        marginBottom: 2,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Agent header row */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          {/* Step number */}
+          <span
+            style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'var(--color-ink-faint)',
+              flexShrink: 0,
+            }}
+          >
+            {String(index + 1).padStart(2, '0')}
+          </span>
+
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'var(--color-ink)',
+                }}
+              >
+                {display.title}
+              </span>
+              <SignalBadge signal={signal} confidence={agent.confidence} size="sm" />
+              {!isCompleted && (
+                <span
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 11,
+                    color: 'var(--color-risk-watch)',
+                    fontWeight: 500,
+                  }}
+                >
+                  {agent.status}
+                </span>
               )}
             </div>
-            <div className="text-[10px] text-[var(--fg-tertiary)] mt-0.5 font-mono">
-              Status: {agent.status.toUpperCase()}
-            </div>
+            <p
+              style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 11,
+                color: 'var(--color-ink-faint)',
+                margin: 0,
+                marginTop: 2,
+              }}
+            >
+              {display.source}
+            </p>
           </div>
         </div>
 
-        <SignalBadge signal={agent.classification} confidence={agent.confidence} size="sm" />
+        <button
+          onClick={() => setExpanded(v => !v)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--color-ink-faint)',
+            padding: 4,
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+          aria-label={expanded ? 'Collapse reasoning' : 'Expand reasoning'}
+        >
+          {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </button>
       </div>
 
-      <p className="text-xs text-[var(--fg-secondary)] mt-3 leading-relaxed">
-        {agent.reasoning}
-      </p>
+      {/* Expanded: reasoning text + citations */}
+      {expanded && (
+        <div
+          style={{
+            padding: '0 16px 14px 40px',
+          }}
+        >
+          <p
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 13,
+              lineHeight: 1.65,
+              color: 'var(--color-ink-muted)',
+              margin: 0,
+            }}
+          >
+            {agent.reasoning}
+          </p>
 
-      {agent.citations && agent.citations.length > 0 && (
-        <div className="mt-3 pt-2.5 border-t border-[var(--border-hairline)]">
-          <div className="text-[10px] uppercase font-semibold text-[var(--fg-tertiary)] mb-1.5 flex items-center space-x-1">
-            <FileText className="w-3 h-3 text-cyan-400" />
-            <span>Grounded Source Citations ({agent.citations.length})</span>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            {agent.citations.map((citation, idx) => (
-              <button
-                key={idx}
-                onClick={() => onSelectCitation(citation)}
-                className="px-2 py-1 rounded bg-[var(--bg-base)] hover:bg-cyan-950/40 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono flex items-center space-x-1 transition group"
-              >
-                <span>[{citation.source || 'Filing'}]</span>
-                <span className="truncate max-w-[120px]">{citation.title}</span>
-              </button>
-            ))}
-          </div>
+          {/* Citations inline */}
+          {agent.citations && agent.citations.length > 0 && (
+            <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {agent.citations.map((citation, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onSelectCitation(citation)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '3px 9px',
+                    background: 'var(--color-subtle)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: 'var(--color-accent-text)',
+                    cursor: 'pointer',
+                    transition: 'border-color 150ms',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-accent)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                >
+                  {citation.source}
+                  <ExternalLink size={10} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

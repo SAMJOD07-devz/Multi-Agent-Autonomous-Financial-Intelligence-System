@@ -46,8 +46,7 @@ export const AnalysisDetailView: React.FC<AnalysisDetailViewProps> = ({
               <SignalBadge
                 signal={recommendation.label as any}
                 confidence={recommendation.confidence}
-                label={recommendation.label}
-                size="lg"
+                size="md"
               />
             ) : (
               <span className="px-3 py-1 rounded bg-red-500/20 text-red-400 font-bold text-xs border border-red-500/30">

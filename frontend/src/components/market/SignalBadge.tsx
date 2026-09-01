@@ -1,58 +1,78 @@
 // src/components/market/SignalBadge.tsx
+// Uses risk traffic-light colors — BULLISH=safe-green, NEUTRAL=amber, BEARISH=red
+// This is intentional: signal direction == risk direction for this instrument
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { SignalType } from '../../types';
 
 interface SignalBadgeProps {
-  signal: SignalType;
+  signal: SignalType | string;
   confidence?: number;
-  label?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md';
 }
 
-export const SignalBadge: React.FC<SignalBadgeProps> = ({
-  signal,
-  confidence,
-  label,
-  size = 'md'
-}) => {
-  const getColors = () => {
-    switch (signal) {
-      case 'BULLISH':
-        return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
-      case 'BEARISH':
-        return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
-      case 'NEUTRAL':
-      default:
-        return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
-    }
+export const SignalBadge: React.FC<SignalBadgeProps> = ({ signal, confidence, size = 'md' }) => {
+  const normalized = signal?.toUpperCase();
+
+  const styles = {
+    BULLISH: {
+      bg: 'var(--color-risk-safe-bg)',
+      color: 'var(--color-risk-safe)',
+      border: 'var(--color-risk-safe-border)',
+    },
+    NEUTRAL: {
+      bg: 'var(--color-risk-watch-bg)',
+      color: 'var(--color-risk-watch)',
+      border: 'var(--color-risk-watch-border)',
+    },
+    BEARISH: {
+      bg: 'var(--color-risk-breach-bg)',
+      color: 'var(--color-risk-breach)',
+      border: 'var(--color-risk-breach-border)',
+    },
   };
 
-  const getIcon = () => {
-    switch (signal) {
-      case 'BULLISH':
-        return <TrendingUp className="w-3.5 h-3.5" />;
-      case 'BEARISH':
-        return <TrendingDown className="w-3.5 h-3.5" />;
-      case 'NEUTRAL':
-      default:
-        return <Minus className="w-3.5 h-3.5" />;
-    }
-  };
+  const s = styles[normalized as keyof typeof styles] ?? styles.NEUTRAL;
+  const Icon = normalized === 'BULLISH' ? TrendingUp : normalized === 'BEARISH' ? TrendingDown : Minus;
+  const iconSize = size === 'sm' ? 11 : 12;
+  const fontSize = size === 'sm' ? 10 : 11;
+  const px = size === 'sm' ? '7px' : '9px';
+  const py = size === 'sm' ? '2px' : '3px';
 
   return (
-    <div
-      className={`inline-flex items-center space-x-1.5 rounded-full border font-semibold tracking-wide uppercase shadow-sm ${getColors()} ${
-        size === 'sm' ? 'px-2 py-0.5 text-[10px]' : size === 'lg' ? 'px-3.5 py-1.5 text-xs' : 'px-2.5 py-1 text-[11px]'
-      }`}
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: `${py} ${px}`,
+        background: s.bg,
+        color: s.color,
+        border: `1px solid ${s.border}`,
+        borderRadius: 'var(--radius-sm)',
+        fontFamily: 'var(--font-ui)',
+        fontSize,
+        fontWeight: 600,
+        letterSpacing: '0.03em',
+        userSelect: 'none',
+      }}
     >
-      {getIcon()}
-      <span>{label || signal}</span>
+      <Icon size={iconSize} />
+      {normalized}
       {typeof confidence === 'number' && (
-        <span className="tabular-nums font-bold opacity-85 ml-1 border-l border-current/30 pl-1.5">
+        <span
+          style={{
+            fontFamily: 'var(--font-data)',
+            fontSize,
+            fontWeight: 700,
+            borderLeft: `1px solid ${s.border}`,
+            paddingLeft: 5,
+            marginLeft: 2,
+          }}
+        >
           {Math.round(confidence * 100)}%
         </span>
       )}
-    </div>
+    </span>
   );
 };
