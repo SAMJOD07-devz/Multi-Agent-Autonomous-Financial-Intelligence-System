@@ -1,0 +1,82 @@
+/* src/theme/tokens.css */
+/* Premium Editorial Light Theme Design Tokens for AstraVest Intelligence */
+
+:root {
+  /* Color System - Light Editorial Fintech Palette */
+  --bg-base: #f8fafc;        /* Slate-50 warm off-white canvas */
+  --bg-surface: #ffffff;     /* Crisp white panel surface */
+  --bg-elevated-1: #ffffff;  /* Surface card background */
+  --bg-elevated-2: #f1f5f9;  /* Slate-100 subtle contrast fill */
+  --bg-elevated-3: #e2e8f0;  /* Slate-200 divider fill */
+  
+  --fg-primary: #0f172a;     /* Slate-900 deep ink for headings */
+  --fg-secondary: #334155;   /* Slate-700 readable body text */
+  --fg-tertiary: #64748b;    /* Slate-500 muted metadata */
+  
+  --positive: #059669;       /* Emerald-600 healthy/bullish */
+  --positive-glow: rgba(5, 150, 105, 0.12);
+  
+  --warning: #d97706;        /* Amber-600 caution/degraded */
+  --warning-glow: rgba(217, 119, 6, 0.12);
+  
+  --degraded: #dc2626;       /* Red-600 error/high-risk */
+  --degraded-glow: rgba(220, 38, 38, 0.12);
+  
+  --accent: #2563eb;         /* Cobalt / Royal Blue primary action */
+  --accent-purple: #7c3aed;  /* Royal purple secondary accent */
+  --accent-glow: rgba(37, 99, 235, 0.12);
+  
+  --border-hairline: #e2e8f0; /* Slate-200 hairline border */
+  --border-active: #2563eb;   /* Cobalt blue active border */
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-elevated: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+
+  /* Chart Palette (Light mode color-blind accessible) */
+  --chart-1: #2563eb;
+  --chart-2: #059669;
+  --chart-3: #7c3aed;
+  --chart-4: #d97706;
+  --chart-5: #db2777;
+  --chart-6: #0891b2;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px;
+
+  /* Spacing Grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Z-Index Hierarchy */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-drawer: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* Motion */
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+  --ease-default: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}
