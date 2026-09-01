@@ -75,6 +75,8 @@ export interface MarketSignals {
     rsi_14?: number;
     macd_signal?: string;
     ema_spread?: number;
+    current_price?: number;
+    price_change_pct?: number;
   };
   volume_anomaly?: {
     volume_spike_ratio?: number;

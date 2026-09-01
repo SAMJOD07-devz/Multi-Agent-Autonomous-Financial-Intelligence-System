@@ -16,6 +16,7 @@ import { mockHistoricalPriceData } from '../../mocks/fixtureData';
 
 interface PriceChartProps {
   ticker: string;
+  currentPrice?: number;
   ma20Data?: { time: string; ma20: number }[];
 }
 
@@ -67,8 +68,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const PriceChart: React.FC<PriceChartProps> = ({ ticker }) => {
-  const data = mockHistoricalPriceData;
+export const PriceChart: React.FC<PriceChartProps> = ({ ticker, currentPrice }) => {
+  const baseData = mockHistoricalPriceData;
+  const basePrice = baseData[baseData.length - 1].price;
+  const scaleRatio = currentPrice && currentPrice > 0 ? currentPrice / basePrice : 1;
+
+  const data = baseData.map(pt => ({
+    ...pt,
+    price: Math.round(pt.price * scaleRatio * 10) / 10,
+    ma20: Math.round(pt.ma20 * scaleRatio * 10) / 10,
+  }));
 
   return (
     <div>

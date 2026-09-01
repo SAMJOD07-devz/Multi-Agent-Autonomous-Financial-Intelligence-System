@@ -224,7 +224,10 @@ export const AnalyzePage: React.FC<AnalyzePageProps> = ({ onRunAnalysis }) => {
 
           {/* ── Price Chart — full width ─────── */}
           <div className="panel-card" style={{ padding: '24px' }}>
-            <PriceChart ticker={activeTicker} />
+            <PriceChart
+              ticker={activeTicker}
+              currentPrice={analysisResult?.market_signals?.price_momentum?.current_price}
+            />
           </div>
         </div>
 

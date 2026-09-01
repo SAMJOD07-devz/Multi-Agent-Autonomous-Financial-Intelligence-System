@@ -64,11 +64,21 @@ export const OverviewPage: React.FC = () => {
   const agents  = analysisResult?.agent_outputs ?? [];
   const latency = analysisResult?.telemetry?.latency_ms;
 
-  const latestPrice = mockHistoricalPriceData[mockHistoricalPriceData.length - 1]?.price;
-  const firstPrice  = mockHistoricalPriceData[0]?.price;
-  const priceDelta  = latestPrice - firstPrice;
-  const pricePct    = ((priceDelta / firstPrice) * 100).toFixed(2);
-  const isUp        = priceDelta >= 0;
+  const livePrice = analysisResult?.market_signals?.price_momentum?.current_price;
+  const liveChangePct = analysisResult?.market_signals?.price_momentum?.price_change_pct;
+
+  const baseLatestPrice = mockHistoricalPriceData[mockHistoricalPriceData.length - 1]?.price;
+  const latestPrice = livePrice ?? baseLatestPrice;
+  const pricePct = liveChangePct !== undefined
+    ? liveChangePct.toFixed(2)
+    : (((latestPrice - (mockHistoricalPriceData[0]?.price || latestPrice)) / (mockHistoricalPriceData[0]?.price || 1)) * 100).toFixed(2);
+  const isUp = Number(pricePct) >= 0;
+
+  const scaleRatio = livePrice && livePrice > 0 ? livePrice / baseLatestPrice : 1;
+  const chartData = mockHistoricalPriceData.map(pt => ({
+    ...pt,
+    price: Math.round(pt.price * scaleRatio * 10) / 10
+  }));
 
   /* ── SYSTEM HEALTH strip (shared by both states) ── */
   const SystemHealth = () => (
@@ -457,7 +467,7 @@ export const OverviewPage: React.FC = () => {
             {/* Mini chart */}
             <div style={{ height: 120, marginBottom: 16 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockHistoricalPriceData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="miniArea" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#1B4FD8" stopOpacity={0.14} />

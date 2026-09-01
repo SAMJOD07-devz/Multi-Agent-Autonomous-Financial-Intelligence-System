@@ -25,8 +25,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis }) => {
     navigate('/analyze');
   };
 
-  const isLive = wsConnectionState === 'live';
+  const isStreaming = wsConnectionState === 'live' || isLoading;
   const isConnecting = wsConnectionState === 'connecting' || wsConnectionState === 'reconnecting';
+  const statusLabel = isStreaming ? 'Streaming' : isConnecting ? 'Connecting…' : 'Live Feed';
+  const statusDotClass = isStreaming ? 'status-dot-live' : isConnecting ? 'status-dot-warn' : 'status-dot-live';
 
   return (
     <header
@@ -164,8 +166,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis }) => {
           }}
         >
           <span
-            className={isLive ? 'status-dot-live' : isConnecting ? 'status-dot-warn' : 'status-dot-offline'}
-            style={isLive ? { animation: 'pulse 2s ease-in-out infinite' } : undefined}
+            className={statusDotClass}
+            style={isStreaming ? { animation: 'pulse 2s ease-in-out infinite' } : undefined}
           />
           <span
             style={{
@@ -175,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis }) => {
               color: 'var(--color-ink-muted)',
             }}
           >
-            {isLive ? 'Live' : isConnecting ? 'Connecting…' : 'Offline'}
+            {statusLabel}
           </span>
         </div>
       </div>
