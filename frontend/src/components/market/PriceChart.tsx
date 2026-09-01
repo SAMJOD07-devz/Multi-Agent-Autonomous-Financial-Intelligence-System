@@ -14,9 +14,12 @@ import {
 } from 'recharts';
 import { mockHistoricalPriceData } from '../../mocks/fixtureData';
 
+import type { HistoricalPoint } from '../../types';
+
 interface PriceChartProps {
   ticker: string;
   currentPrice?: number;
+  history?: HistoricalPoint[];
   ma20Data?: { time: string; ma20: number }[];
 }
 
@@ -68,16 +71,24 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const PriceChart: React.FC<PriceChartProps> = ({ ticker, currentPrice }) => {
-  const baseData = mockHistoricalPriceData;
-  const basePrice = baseData[baseData.length - 1].price;
-  const scaleRatio = currentPrice && currentPrice > 0 ? currentPrice / basePrice : 1;
+export const PriceChart: React.FC<PriceChartProps> = ({ ticker, currentPrice, history }) => {
+  const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
-  const data = baseData.map(pt => ({
-    ...pt,
-    price: Math.round(pt.price * scaleRatio * 10) / 10,
-    ma20: Math.round(pt.ma20 * scaleRatio * 10) / 10,
-  }));
+  let data: any[] = [];
+  if (history && history.length > 0) {
+    data = history;
+  } else {
+    const baseData = mockHistoricalPriceData;
+    const basePrice = baseData[baseData.length - 1].price;
+    const scaleRatio = currentPrice && currentPrice > 0 ? currentPrice / basePrice : 1;
+
+    data = baseData.map((pt, idx) => ({
+      ...pt,
+      time: idx === baseData.length - 1 ? nowTime : pt.time,
+      price: Math.round(pt.price * scaleRatio * 10) / 10,
+      ma20: Math.round(pt.ma20 * scaleRatio * 10) / 10,
+    }));
+  }
 
   return (
     <div>

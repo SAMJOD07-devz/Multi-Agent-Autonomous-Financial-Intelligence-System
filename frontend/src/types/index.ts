@@ -77,6 +77,7 @@ export interface MarketSignals {
     ema_spread?: number;
     current_price?: number;
     price_change_pct?: number;
+    history?: HistoricalPoint[];
   };
   volume_anomaly?: {
     volume_spike_ratio?: number;

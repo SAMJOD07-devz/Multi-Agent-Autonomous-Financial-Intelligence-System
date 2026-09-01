@@ -170,9 +170,10 @@ class MockOrchestrator(OrchestrationAdapter):
         market_signals = {
             "price_momentum": {
                 "rsi_14": 74.0,
-                "macd_signal": "BULLISH",
+                "macd_signal": "BULLISH" if price_change_pct >= 0 else "BEARISH",
                 "current_price": current_price,
-                "price_change_pct": price_change_pct
+                "price_change_pct": price_change_pct,
+                "history": live_market_info.get("history", [])
             },
             "volume_anomaly": {"volume_spike_ratio": 1.25},
             "sentiment": {"news_sentiment_score": 0.68}

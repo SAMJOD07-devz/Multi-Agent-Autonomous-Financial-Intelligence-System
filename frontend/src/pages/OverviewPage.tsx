@@ -70,6 +70,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onRunAnalysis }) => 
 
   const livePrice = analysisResult?.market_signals?.price_momentum?.current_price;
   const liveChangePct = analysisResult?.market_signals?.price_momentum?.price_change_pct;
+  const liveHistory = analysisResult?.market_signals?.price_momentum?.history;
 
   const baseLatestPrice = mockHistoricalPriceData[mockHistoricalPriceData.length - 1]?.price;
   const latestPrice = livePrice ?? baseLatestPrice;
@@ -78,11 +79,15 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onRunAnalysis }) => 
     : (((latestPrice - (mockHistoricalPriceData[0]?.price || latestPrice)) / (mockHistoricalPriceData[0]?.price || 1)) * 100).toFixed(2);
   const isUp = Number(pricePct) >= 0;
 
+  const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   const scaleRatio = livePrice && livePrice > 0 ? livePrice / baseLatestPrice : 1;
-  const chartData = mockHistoricalPriceData.map(pt => ({
-    ...pt,
-    price: Math.round(pt.price * scaleRatio * 10) / 10
-  }));
+  const chartData = (liveHistory && liveHistory.length > 0)
+    ? liveHistory
+    : mockHistoricalPriceData.map((pt, idx) => ({
+        ...pt,
+        time: idx === mockHistoricalPriceData.length - 1 ? nowTime : pt.time,
+        price: Math.round(pt.price * scaleRatio * 10) / 10
+      }));
 
   /* ── SYSTEM HEALTH strip (shared by both states) ── */
   const SystemHealth = () => (
