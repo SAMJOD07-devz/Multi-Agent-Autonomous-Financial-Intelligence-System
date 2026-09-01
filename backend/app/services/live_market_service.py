@@ -158,9 +158,27 @@ TICKER_ALIASES: Dict[str, str] = {
     "ULTRATECH": "ULTRACEMCO.NS",
     "ULTRATECH CEMENT": "ULTRACEMCO.NS",
     "DLF": "DLF.NS",
+    # Indices & Benchmark ETFs
+    "NIFTY": "^NSEI",
+    "NIFTY 50": "^NSEI",
+    "NIFTY50": "^NSEI",
+    "NSE NIFTY": "^NSEI",
+    "NIFTY INDEX": "^NSEI",
+    "BANKNIFTY": "^NSEBANK",
+    "BANK NIFTY": "^NSEBANK",
+    "NIFTY BANK": "^NSEBANK",
+    "SENSEX": "^BSESN",
+    "BSE SENSEX": "^BSESN",
+    "NIFTY IT": "^CNXIT",
+    "NIFTYBEES": "NIFTYBEES.NS",
+    "NIFTY BEES": "NIFTYBEES.NS",
 }
 
 DEFAULT_PRICES: Dict[str, float] = {
+    "NIFTY": 24080.40,
+    "NIFTY 50": 24080.40,
+    "BANKNIFTY": 58024.90,
+    "SENSEX": 76944.30,
     "PNB": 115.20,
     "PUNJAB NATIONAL BANK": 115.20,
     "RELIANCE": 1302.60,
@@ -200,8 +218,8 @@ def resolve_ticker_symbol(input_query: str) -> str:
     if clean_normalized in TICKER_ALIASES:
         return TICKER_ALIASES[clean_normalized]
 
-    # 2. Already formatted (.NS or .BO)
-    if '.' in clean:
+    # 2. Already formatted (.NS or .BO or ^ index)
+    if '.' in clean or clean.startswith('^'):
         return clean
 
     # 3. Dynamic search via yfinance Search API
@@ -209,9 +227,23 @@ def resolve_ticker_symbol(input_query: str) -> str:
         import yfinance as yf
         search_res = yf.Search(input_query)
         if search_res and search_res.quotes:
+            # First priority: Indices (^NSEI, ^BSESN, etc.)
             for quote in search_res.quotes:
                 sym = quote.get('symbol', '')
-                if sym.endswith('.NS') or sym.endswith('.BO'):
+                qtype = (quote.get('quoteType') or '').upper()
+                if qtype == 'INDEX' or sym.startswith('^'):
+                    return sym
+
+            # Second priority: NSE Equities (.NS, not mutual funds)
+            for quote in search_res.quotes:
+                sym = quote.get('symbol', '')
+                if sym.endswith('.NS') and not sym.startswith('0P'):
+                    return sym
+
+            # Third priority: BSE Equities (.BO, not mutual funds)
+            for quote in search_res.quotes:
+                sym = quote.get('symbol', '')
+                if sym.endswith('.BO') and not sym.startswith('0P'):
                     return sym
     except Exception as exc:
         logger.debug(f"yf.Search lookup skipped for '{input_query}': {exc}")
