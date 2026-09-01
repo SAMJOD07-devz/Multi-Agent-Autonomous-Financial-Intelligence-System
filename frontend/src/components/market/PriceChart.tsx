@@ -14,12 +14,13 @@ import {
 } from 'recharts';
 import { mockHistoricalPriceData } from '../../mocks/fixtureData';
 
-import type { HistoricalPoint } from '../../types';
+import type { HistoricalPoint, MarketSession } from '../../types';
 
 interface PriceChartProps {
   ticker: string;
   currentPrice?: number;
   history?: HistoricalPoint[];
+  marketSession?: MarketSession;
   ma20Data?: { time: string; ma20: number }[];
 }
 
@@ -71,7 +72,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const PriceChart: React.FC<PriceChartProps> = ({ ticker, currentPrice, history }) => {
+export const PriceChart: React.FC<PriceChartProps> = ({ ticker, currentPrice, history, marketSession }) => {
   const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
   let data: any[] = [];
@@ -124,7 +125,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({ ticker, currentPrice, hi
               marginTop: 2,
             }}
           >
-            NSE · Prices in ₹ INR · Volume bars normalized
+            NSE · Prices in ₹ INR · {marketSession?.is_open ? 'Live Trading' : (marketSession?.as_of || 'Market Closed · As of 15:30 IST')}
           </p>
         </div>
 

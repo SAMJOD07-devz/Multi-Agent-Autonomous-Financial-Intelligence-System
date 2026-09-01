@@ -70,6 +70,14 @@ export interface PortfolioContext {
   holdings?: PortfolioHolding[];
 }
 
+export interface MarketSession {
+  is_open: boolean;
+  status_label: string;
+  as_of: string;
+  last_trading_time?: string;
+  now_ist?: string;
+}
+
 export interface MarketSignals {
   price_momentum?: {
     rsi_14?: number;
@@ -87,6 +95,7 @@ export interface MarketSignals {
     news_sentiment_score?: number;
     social_volume?: number;
   };
+  market_session?: MarketSession;
 }
 
 export interface AnalysisRequest {

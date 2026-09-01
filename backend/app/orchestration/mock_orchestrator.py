@@ -176,7 +176,8 @@ class MockOrchestrator(OrchestrationAdapter):
                 "history": live_market_info.get("history", [])
             },
             "volume_anomaly": {"volume_spike_ratio": 1.25},
-            "sentiment": {"news_sentiment_score": 0.68}
+            "sentiment": {"news_sentiment_score": 0.68},
+            "market_session": live_market_info.get("market_session", {})
         }
 
         return agent_outputs, market_signals, None

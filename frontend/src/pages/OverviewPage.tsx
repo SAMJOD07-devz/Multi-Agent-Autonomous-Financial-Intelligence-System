@@ -90,25 +90,76 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onRunAnalysis }) => 
       }));
 
   /* ── SYSTEM HEALTH strip (shared by both states) ── */
-  const SystemHealth = () => (
-    <div className="panel-card" style={{ padding: '18px 20px' }}>
-      <p className="section-label" style={{ marginTop: 0, marginBottom: 12 }}>System</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {[
-          { label: 'WebSocket feed',  ok: wsConnectionState === 'live', value: wsConnectionState },
-          { label: 'FastAPI backend', ok: true,                          value: 'Online' },
-          { label: 'Latency',         ok: latency == null || latency < 500, value: latency != null ? `${latency.toFixed(0)} ms` : '—' },
-        ].map(r => (
-          <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--color-ink-muted)' }}>
-              {r.label}
+  const SystemHealth = () => {
+    const isStreaming = wsConnectionState === 'live' || wsConnectionState === 'connecting';
+    const sessionInfo = analysisResult?.market_signals?.market_session;
+    const isMarketOpen = sessionInfo ? sessionInfo.is_open : false;
+    const marketStatusLabel = sessionInfo?.status_label || (isMarketOpen ? 'Market Open' : 'Market Closed');
+    const marketTimeNote = sessionInfo?.as_of || (isMarketOpen ? 'Live Trading' : 'As of 15:30 IST (Market Close)');
+
+    return (
+      <div className="panel-card" style={{ padding: '18px 20px' }}>
+        <p className="section-label" style={{ marginTop: 0, marginBottom: 12 }}>System & Market</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Market Session Status */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, color: 'var(--color-ink)' }}>
+                NSE Market
+              </span>
+              <div style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--color-ink-faint)', marginTop: 2 }}>
+                {marketTimeNote}
+              </div>
+            </div>
+            <span
+              style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 11,
+                fontWeight: 600,
+                color: isMarketOpen ? 'var(--color-risk-safe)' : 'var(--color-ink-muted)',
+                background: isMarketOpen ? 'var(--color-risk-safe-bg)' : 'var(--color-subtle)',
+                border: `1px solid ${isMarketOpen ? 'var(--color-risk-safe-border)' : 'var(--color-border)'}`,
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              {marketStatusLabel}
             </span>
-            <StatusChip ok={r.ok} value={r.value} />
           </div>
-        ))}
+
+          {/* WebSocket Agent Stream */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--color-ink-muted)' }}>
+              Agent Stream (WS)
+            </span>
+            <StatusChip
+              ok={true}
+              value={isStreaming ? 'Streaming' : 'Ready (Online)'}
+            />
+          </div>
+
+          {/* FastAPI backend */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--color-ink-muted)' }}>
+              FastAPI Backend
+            </span>
+            <StatusChip ok={true} value="Online" />
+          </div>
+
+          {/* Response Latency */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--color-ink-muted)' }}>
+              Response Latency
+            </span>
+            <StatusChip
+              ok={latency == null || latency < 1200}
+              value={latency != null ? `${latency.toFixed(0)} ms` : '—'}
+            />
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   /* ── RECENT SESSIONS panel (shared) ── */
   const RecentSessions = () => (

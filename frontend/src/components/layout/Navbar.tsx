@@ -13,7 +13,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis }) => {
   const navigate = useNavigate();
-  const { activeTicker, setActiveTicker, isLoading, wsConnectionState } = useAppStore();
+  const { activeTicker, setActiveTicker, isLoading, wsConnectionState, analysisResult } = useAppStore();
   const [inputTicker, setInputTicker] = useState(activeTicker);
 
   React.useEffect(() => {
@@ -33,8 +33,33 @@ export const Navbar: React.FC<NavbarProps> = ({ onRunAnalysis }) => {
 
   const isStreaming = wsConnectionState === 'live' || isLoading;
   const isConnecting = wsConnectionState === 'connecting' || wsConnectionState === 'reconnecting';
-  const statusLabel = isStreaming ? 'Streaming' : isConnecting ? 'Connecting…' : 'Live Feed';
-  const statusDotClass = isStreaming ? 'status-dot-live' : isConnecting ? 'status-dot-warn' : 'status-dot-live';
+  const sessionInfo = analysisResult?.market_signals?.market_session;
+
+  // Real-time market status calculation
+  let isMarketOpen = sessionInfo ? sessionInfo.is_open : false;
+  if (!sessionInfo) {
+    const now = new Date();
+    // UTC offset for IST is +5.5 hours
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+    const day = ist.getDay(); // 0=Sun, 6=Sat
+    const hours = ist.getHours();
+    const minutes = ist.getMinutes();
+    const totalMinutes = hours * 60 + minutes;
+    // 09:15 is 555 min, 15:30 is 930 min
+    isMarketOpen = (day >= 1 && day <= 5) && (totalMinutes >= 555 && totalMinutes <= 930);
+  }
+
+  let statusLabel = isMarketOpen ? 'Market Open' : 'Market Closed (15:30 IST)';
+  let statusDotClass = isMarketOpen ? 'status-dot-live' : 'status-dot-offline';
+
+  if (isStreaming) {
+    statusLabel = 'Streaming Trace';
+    statusDotClass = 'status-dot-live';
+  } else if (isConnecting) {
+    statusLabel = 'Connecting…';
+    statusDotClass = 'status-dot-warn';
+  }
 
   return (
     <header

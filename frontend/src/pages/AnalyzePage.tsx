@@ -232,6 +232,7 @@ export const AnalyzePage: React.FC<AnalyzePageProps> = ({ onRunAnalysis }) => {
               ticker={activeTicker}
               currentPrice={analysisResult?.market_signals?.price_momentum?.current_price}
               history={analysisResult?.market_signals?.price_momentum?.history}
+              marketSession={analysisResult?.market_signals?.market_session}
             />
           </div>
         </div>
