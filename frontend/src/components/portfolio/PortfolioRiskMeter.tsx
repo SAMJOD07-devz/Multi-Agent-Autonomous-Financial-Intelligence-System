@@ -181,7 +181,9 @@ export const PortfolioRiskMeter: React.FC<PortfolioRiskMeterProps> = ({
               lineHeight: 1.5,
             }}
           >
-            Portfolio concentration exceeds the 0.25 threshold. Adding more {activeTicker} will increase concentration risk.
+            {holdings.some(h => h.ticker.toUpperCase() === activeTicker.toUpperCase())
+              ? `Portfolio concentration (${hhiScore.toFixed(3)}) exceeds the 0.25 limit. ${activeTicker} currently represents ${Math.round((holdings.find(h => h.ticker.toUpperCase() === activeTicker.toUpperCase())?.weight || 0) * 100)}% of your portfolio.`
+              : `Portfolio concentration (${hhiScore.toFixed(3)}) exceeds the 0.25 limit. Adding ${activeTicker} requires rebalancing existing positions.`}
           </p>
         </div>
       ) : (
@@ -206,7 +208,7 @@ export const PortfolioRiskMeter: React.FC<PortfolioRiskMeterProps> = ({
               margin: 0,
             }}
           >
-            Within diversification limits.
+            Concentration risk is safe (HHI: {hhiScore.toFixed(3)}).
           </p>
         </div>
       )}
@@ -216,7 +218,8 @@ export const PortfolioRiskMeter: React.FC<PortfolioRiskMeterProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         {holdings.map((h, i) => {
           const isActive = h.ticker.toUpperCase() === activeTicker.toUpperCase();
-          const pnlPct = ((h.current_price - h.avg_buy_price) / h.avg_buy_price) * 100;
+          const buyPrice = h.avg_buy_price && h.avg_buy_price > 0 ? h.avg_buy_price : h.current_price;
+          const pnlPct = buyPrice > 0 ? ((h.current_price - buyPrice) / buyPrice) * 100 : 0;
           const isGain = pnlPct >= 0;
 
           return (

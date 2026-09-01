@@ -32,7 +32,11 @@ export const AnalyzePage: React.FC<AnalyzePageProps> = ({ onRunAnalysis }) => {
 
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const hhiScore = analysisResult?.telemetry?.risk_concentration_score ?? 0.28;
+  const portfolioContext = analysisResult?.portfolio_context;
+  const hhiScore = analysisResult?.telemetry?.risk_concentration_score ?? portfolioContext?.hhi_score ?? 0.28;
+  const holdings = (portfolioContext?.holdings && portfolioContext.holdings.length > 0)
+    ? portfolioContext.holdings
+    : mockUserHoldings;
 
   return (
     <>
@@ -243,7 +247,7 @@ export const AnalyzePage: React.FC<AnalyzePageProps> = ({ onRunAnalysis }) => {
             <div className="panel-card" style={{ padding: '20px' }}>
               <PortfolioRiskMeter
                 hhiScore={hhiScore}
-                holdings={mockUserHoldings}
+                holdings={holdings}
                 activeTicker={activeTicker}
               />
             </div>
