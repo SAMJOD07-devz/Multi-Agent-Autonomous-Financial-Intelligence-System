@@ -114,12 +114,18 @@ function normalizeAnalysisResponse(
         }))
       : [],
     market_signals: raw.market_signals || {},
-    portfolio_context: raw.portfolio_context || { portfolio_id: 'default', hhi_score: 0.0 },
+    portfolio_context: {
+      portfolio_id: raw.portfolio_context?.portfolio_id || 'port_cons_01',
+      hhi_score: raw.portfolio_context?.hhi_score ?? 0.34,
+      total_holdings_count: raw.portfolio_context?.total_holdings_count ?? (Array.isArray(raw.portfolio_context?.holdings) ? raw.portfolio_context.holdings.length : 4),
+      holdings: Array.isArray(raw.portfolio_context?.holdings) && raw.portfolio_context.holdings.length > 0 ? raw.portfolio_context.holdings : mockCleanAnalysisResponse(fallbackTicker, fallbackProfile).portfolio_context.holdings,
+      ticker_weight: raw.portfolio_context?.ticker_weight ?? 0.0
+    },
     citations: Array.isArray(raw.citations) ? raw.citations : [],
     safe_next_step: raw.safe_next_step || null,
     telemetry: {
       latency_ms: raw.telemetry?.latency_ms ?? 0,
-      risk_concentration_score: raw.telemetry?.risk_concentration_score ?? raw.portfolio_context?.hhi_score ?? 0,
+      risk_concentration_score: raw.telemetry?.risk_concentration_score ?? raw.portfolio_context?.hhi_score ?? 0.34,
       combined_confidence: raw.telemetry?.combined_confidence ?? 0.5
     },
     created_at: raw.created_at || new Date().toISOString()

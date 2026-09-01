@@ -96,9 +96,10 @@ export const mockCleanAnalysisResponse = (ticker: string = 'RELIANCE', profile: 
     },
     portfolio_context: {
       portfolio_id: 'port_cons_01',
-      hhi_score: 0.28,
+      hhi_score: 0.34,
       total_holdings_count: 4,
-      ticker_weight: 0.35
+      holdings: mockUserHoldings,
+      ticker_weight: ticker.toUpperCase() === 'RELIANCE' ? 0.50 : ticker.toUpperCase() === 'HDFCBANK' ? 0.11 : ticker.toUpperCase() === 'TCS' ? 0.24 : ticker.toUpperCase() === 'INFY' ? 0.15 : 0.0
     },
     citations: [
       {
@@ -113,7 +114,7 @@ export const mockCleanAnalysisResponse = (ticker: string = 'RELIANCE', profile: 
     safe_next_step: null,
     telemetry: {
       latency_ms: 142.5,
-      risk_concentration_score: 0.28,
+      risk_concentration_score: 0.34,
       combined_confidence: isConservative ? 0.79 : 0.88
     },
     created_at: new Date().toISOString()
@@ -246,8 +247,8 @@ export const mockHistoricalPriceData: HistoricalPoint[] = [
 ];
 
 export const mockUserHoldings: PortfolioHolding[] = [
-  { holding_id: 'h1', ticker: 'RELIANCE', quantity: 300, avg_buy_price: 1180.0, current_price: 1301.5, asset_class: 'Equity', weight: 0.35 },
-  { holding_id: 'h2', ticker: 'TCS', quantity: 80, avg_buy_price: 3600.0, current_price: 4120.0, asset_class: 'Equity', weight: 0.27 },
-  { holding_id: 'h3', ticker: 'INFY', quantity: 200, avg_buy_price: 1420.0, current_price: 1850.0, asset_class: 'Equity', weight: 0.22 },
-  { holding_id: 'h4', ticker: 'HDFCBANK', quantity: 120, avg_buy_price: 1550.0, current_price: 1680.0, asset_class: 'Banking', weight: 0.16 }
+  { holding_id: 'h1', ticker: 'RELIANCE', quantity: 300, avg_buy_price: 1180.0, current_price: 1309.0, asset_class: 'Equity', weight: 0.50 },
+  { holding_id: 'h2', ticker: 'TCS', quantity: 80, avg_buy_price: 2400.0, current_price: 2369.0, asset_class: 'Equity', weight: 0.24 },
+  { holding_id: 'h3', ticker: 'INFY', quantity: 200, avg_buy_price: 1100.0, current_price: 1156.0, asset_class: 'Equity', weight: 0.15 },
+  { holding_id: 'h4', ticker: 'HDFCBANK', quantity: 120, avg_buy_price: 680.0, current_price: 711.9, asset_class: 'Banking', weight: 0.11 }
 ];
